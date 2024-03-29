@@ -34,7 +34,8 @@ class Keyboards {
         return markupInline;
     }
 
-    static InlineKeyboardMarkup getGroupsKeyboard(NotificationBot.State state, List<Group> groups) {
+//    static InlineKeyboardMarkup getGroupsKeyboard(NotificationBot.State state, List<Group> groups) {
+    static InlineKeyboardMarkup getGroupsKeyboard(NotificationBot.State state) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
@@ -51,36 +52,36 @@ class Keyboards {
         buttonDeleteGroup.setCallbackData("delete_group");
         rowInlineDeleteGroup.add(buttonDeleteGroup);
         rowsInline.add(rowInlineDeleteGroup);
-
-//        // TODO get groups
-//        long userId = state.userId;
-//        List<MyAmazingBot.Group> groups = new ArrayList<>();
-//        groups.add(new MyAmazingBot.Group(0, "Group_1", userId));
-//        groups.add(new MyAmazingBot.Group(1, "Group_2", userId));
-
-        for (NotificationBot.Group group : groups.subList(state.page * Constants.PAGE_SIZE, (state.page+1) * 5)) {
-            List<InlineKeyboardButton> rowInlineGroup = new ArrayList<>();
-            InlineKeyboardButton buttonGroup = new InlineKeyboardButton();
-            buttonGroup.setText(group.name);
-            buttonGroup.setCallbackData("group_retrieve=" + group.id);
-            rowInlineGroup.add(buttonGroup);
-            rowsInline.add(rowInlineGroup);
-        }
-
-        List<InlineKeyboardButton> rowInlinePag = new ArrayList<>();
-        if (state.page > 0) {
-            InlineKeyboardButton buttonLeft = new InlineKeyboardButton();
-            buttonLeft.setText("<");
-            buttonLeft.setCallbackData("group=" + state.groupId + ";p="+(state.page-1));  // TODO change url
-            rowInlinePag.add(buttonLeft);
-        }
-        if (groups.size() - state.page * Constants.PAGE_SIZE > 1) { // TODO: check condition
-            InlineKeyboardButton buttonRight = new InlineKeyboardButton();
-            buttonRight.setText(">");
-            buttonRight.setCallbackData("group=" + state.groupId + ";p="+(state.page+1));  // TODO change url
-            rowInlinePag.add(buttonRight);
-        }
-        rowsInline.add(rowInlinePag);
+//
+////        // TODO get groups
+////        long userId = state.userId;
+////        List<MyAmazingBot.Group> groups = new ArrayList<>();
+////        groups.add(new MyAmazingBot.Group(0, "Group_1", userId));
+////        groups.add(new MyAmazingBot.Group(1, "Group_2", userId));
+//
+//        for (NotificationBot.Group group : groups.subList(state.page * Constants.PAGE_SIZE, (state.page+1) * 5)) {
+//            List<InlineKeyboardButton> rowInlineGroup = new ArrayList<>();
+//            InlineKeyboardButton buttonGroup = new InlineKeyboardButton();
+//            buttonGroup.setText(group.name);
+//            buttonGroup.setCallbackData("group_retrieve=" + group.id);
+//            rowInlineGroup.add(buttonGroup);
+//            rowsInline.add(rowInlineGroup);
+//        }
+//
+//        List<InlineKeyboardButton> rowInlinePag = new ArrayList<>();
+//        if (state.page > 0) {
+//            InlineKeyboardButton buttonLeft = new InlineKeyboardButton();
+//            buttonLeft.setText("<");
+//            buttonLeft.setCallbackData("group=" + state.groupId + ";p="+(state.page-1));  // TODO change url
+//            rowInlinePag.add(buttonLeft);
+//        }
+//        if (groups.size() - state.page * Constants.PAGE_SIZE > 1) {  // TODO: check condition
+//            InlineKeyboardButton buttonRight = new InlineKeyboardButton();
+//            buttonRight.setText(">");
+//            buttonRight.setCallbackData("group=" + state.groupId + ";p="+(state.page+1));  // TODO change url
+//            rowInlinePag.add(buttonRight);
+//        }
+//        rowsInline.add(rowInlinePag);
 
         List<InlineKeyboardButton> rowInlineBack = new ArrayList<>();
         InlineKeyboardButton buttonBack = new InlineKeyboardButton();
@@ -181,18 +182,18 @@ class Keyboards {
         markupInline.setKeyboard(rowsInline);
         return markupInline;
     }
-
-    static InlineKeyboardMarkup getCancelAddKeyboard() {
-        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInlineBack = new ArrayList<>();
-        InlineKeyboardButton buttonCancel = new InlineKeyboardButton();
-        buttonCancel.setText("Закончить добавление товаров.");
-        buttonCancel.setCallbackData("group_retrieve=" + state.groupId);
-        rowInlineBack.add(buttonCancel);
-        rowsInline.add(rowInlineBack);
-        markupInline.setKeyboard(rowsInline);
-        return markupInline;
-    }
+//
+//    static InlineKeyboardMarkup getCancelAddKeyboard() {
+//        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+//        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+//        List<InlineKeyboardButton> rowInlineBack = new ArrayList<>();
+//        InlineKeyboardButton buttonCancel = new InlineKeyboardButton();
+//        buttonCancel.setText("Закончить добавление товаров.");
+//        buttonCancel.setCallbackData("group_retrieve=" + state.groupId);
+//        rowInlineBack.add(buttonCancel);
+//        rowsInline.add(rowInlineBack);
+//        markupInline.setKeyboard(rowsInline);
+//        return markupInline;
+//    }
 
 }

@@ -66,11 +66,11 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     private void onCallback(Update update, State state) {
         // TODO: rework
-        InlineKeyboardMarkup kbm = Keyboards.getKeyboard(state);
+//        InlineKeyboardMarkup kbm = Keyboards.getKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
         message.setText("Ответ на callback#" + update.getCallbackQuery().getId()); // todo: write prod message start
-        message.setReplyMarkup(kbm);
+//        message.setReplyMarkup(kbm);
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -143,7 +143,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageAddProductSuccess(long userId, ProductAddStatus status) {
-        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
+//        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(userId);
         if (status == ProductAddStatus.SUCCESS) {
@@ -155,7 +155,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         } else if (status == ProductAddStatus.NO_PRODUCT) {
             message.setText("Данная страница не содержит товара. Возможно такого товара нет.");
         }
-        message.setReplyMarkup(kbm);
+//        message.setReplyMarkup(kbm);
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -164,11 +164,11 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageAddProductUnexpected(long userId) {
-        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
+//        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(userId);
         message.setText("Такого сообщения не ожидалось"); // todo: write prod message start
-        message.setReplyMarkup(kbm);
+//        message.setReplyMarkup(kbm);
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -178,11 +178,11 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     private void sendMessageCurrentState(Update update, State state) {
         // TODO: хз как это сделать
-        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
+//        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(update.getMessage().getFrom().getId());
         message.setText("Такого сообщения не ожидалось"); // todo: write prod message start
-        message.setReplyMarkup(kbm);
+//        message.setReplyMarkup(kbm);
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -234,7 +234,6 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
     // TODO replace this to Hibernate
     private class Group {
-
         int id;
         String name;
         long userId;
