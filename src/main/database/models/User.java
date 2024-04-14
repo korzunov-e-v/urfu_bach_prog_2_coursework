@@ -15,7 +15,7 @@ public class User {
     private String name;
 
     @Column(name="tgId", nullable=false, unique=true)
-    private double tgId;
+    private long tgId;
 
     @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY)
     private List<Group> groups;

@@ -12,11 +12,11 @@ public class Product {
     private String name;
 
     @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="marketplace_id")
+    @JoinColumn(name="marketplace_id", nullable = false)
     private Marketplace marketplace;
 
     @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="groupId_id")
+    @JoinColumn(name="groupId_id", nullable = false)
     private Group groupId;
 
     // TODO: datetime
