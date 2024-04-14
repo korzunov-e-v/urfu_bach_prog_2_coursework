@@ -19,5 +19,7 @@ public class Product {
     @JoinColumn(name="groupId_id")
     private Group groupId;
 
-// TODO: datetime
+    // TODO: datetime
+
+    // TODO: создать конструктор
 }

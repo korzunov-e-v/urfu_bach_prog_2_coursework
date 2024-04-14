@@ -8,6 +8,7 @@ import java.util.List;
 public class User {
     @Id
     @GeneratedValue
+    @Column(name="id")
     private Long id;
 
     @Column(name="name", nullable=false, unique=false, length=255)
@@ -18,4 +19,6 @@ public class User {
 
     @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY)
     private List<Group> groups;
+
+    // TODO: создать конструктор
 }

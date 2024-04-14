@@ -1,3 +1,5 @@
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -137,8 +139,11 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private ProductAddStatus addProduct(long userId, String productUrl) {
+        SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
+        Session session = sessionFactory.openSession();
         // TODO: check productUrl
         // TODO: add product to db
+//        session.persist(new Product()); // TODO: создать конструктор
         return ProductAddStatus.SUCCESS;
     }
 

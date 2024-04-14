@@ -13,4 +13,6 @@ public class Marketplace {
 
     @Column(name="baseUrl", nullable=false, unique=false, length=255)
     private String baseUrl;
+
+    // TODO: создать конструктор
 }

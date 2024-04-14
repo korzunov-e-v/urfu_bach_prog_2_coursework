@@ -20,4 +20,6 @@ public class Group {
 
     @OneToMany(mappedBy = "groupId", fetch = FetchType.LAZY)
     private List<Product> products;
+
+    // TODO: создать конструктор
 }
