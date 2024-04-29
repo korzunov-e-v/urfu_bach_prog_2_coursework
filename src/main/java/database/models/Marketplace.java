@@ -1,3 +1,5 @@
+package database.models;
+
 import jakarta.persistence.*;
 
 

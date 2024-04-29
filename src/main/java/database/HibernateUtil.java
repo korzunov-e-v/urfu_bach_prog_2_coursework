@@ -1,3 +1,9 @@
+package database;
+
+import database.models.Group;
+import database.models.Marketplace;
+import database.models.Product;
+import database.models.User;
 import org.hibernate.boot.Metadata;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;

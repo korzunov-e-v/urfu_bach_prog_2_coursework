@@ -1,24 +1,22 @@
 services:
-  bot:
+  cw2-bot:
     build:
       context: .
-    ports:
-      - 80:80
     volumes:
       - ./build:/build/
     env_file:
       - .env
     depends_on:
-      db:
+      cw2-db:
         condition: service_healthy
-  db:
+  cw2-db:
     image: postgres
     restart: always
     user: postgres
     volumes:
-      - notification-bot-db-data:/var/lib/postgresql/data
+      - cw2-postgres-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=postgres
+      - POSTGRES_DB=urfu_cw1
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
@@ -28,5 +26,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      
+  cw2-mongo:
+    image: mongo
+    restart: always
+    volumes:
+     - cw2-mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  cw2-mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@cw2-mongo:27017/
+      ME_CONFIG_BASICAUTH: false
 volumes:
-  notification-bot-db-data:
+  cw2-postgres-data:
+  cw2-mongo-data:

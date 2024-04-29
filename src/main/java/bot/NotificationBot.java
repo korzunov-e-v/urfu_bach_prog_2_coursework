@@ -1,3 +1,6 @@
+package bot;
+
+import database.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -68,7 +71,7 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     private void onCallback(Update update, State state) {
         // TODO: rework
-//        InlineKeyboardMarkup kbm = Keyboards.getKeyboard(state);
+//        InlineKeyboardMarkup kbm = bot.Keyboards.getKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
         message.setText("Ответ на callback#" + update.getCallbackQuery().getId()); // todo: write prod message start
@@ -148,7 +151,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageAddProductSuccess(long userId, ProductAddStatus status) {
-//        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
+//        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelAddKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(userId);
         if (status == ProductAddStatus.SUCCESS) {
@@ -169,7 +172,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageAddProductUnexpected(long userId) {
-//        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
+//        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelAddKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(userId);
         message.setText("Такого сообщения не ожидалось"); // todo: write prod message start
@@ -183,7 +186,7 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     private void sendMessageCurrentState(Update update, State state) {
         // TODO: хз как это сделать
-//        InlineKeyboardMarkup kbm = Keyboards.getCancelAddKeyboard();
+//        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelAddKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(update.getMessage().getFrom().getId());
         message.setText("Такого сообщения не ожидалось"); // todo: write prod message start

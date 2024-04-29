@@ -1,3 +1,5 @@
+import bot.NotificationBot;
+import database.HibernateUtil;
 import org.hibernate.SessionFactory;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
