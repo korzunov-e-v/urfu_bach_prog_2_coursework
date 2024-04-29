@@ -3,18 +3,46 @@ package database.models;
 import jakarta.persistence.*;
 
 
+@SuppressWarnings("unused")
 @Entity
-@Table(name = "Marketplaces")
+@Table(name="Marketplaces")
 public class Marketplace {
     @Id
     @GeneratedValue
+    @Column(name="id", nullable=false, unique=true, length=11)
     private Long id;
 
-    @Column(name="name", nullable=false, unique=false, length=255)
+    @Column(name="name", nullable=false)
     private String name;
 
-    @Column(name="baseUrl", nullable=false, unique=false, length=255)
+    @Column(name="baseUrl", nullable=false)
     private String baseUrl;
 
-    // TODO: создать конструктор
+    public Marketplace(String name, String baseUrl) {
+        this.name = name;
+        this.baseUrl = baseUrl;
+    }
+
+    public Marketplace() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    @Override
+    public String toString() {
+        return "Marketplace{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                '}';
+    }
 }
