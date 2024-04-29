@@ -1,6 +1,8 @@
 package bot;
 
 import database.HibernateUtil;
+import database.models.Group;
+import database.models.User;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -11,22 +13,32 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
 
+import static bot.Queries.getGroups;
+import static bot.Queries.getOrCreateUser;
+
 public class NotificationBot extends TelegramLongPollingBot {
 
-    private final Map<Long, State> stateMap = new HashMap<>();
+    private final Map<Long, State> stateMap;
 
     public NotificationBot(String botToken) {
         super(botToken);
+        this.stateMap = new HashMap<>();
     }
 
     @Override
     public void onUpdateReceived(Update update) {
         long userId;
+        String username;
         if (update.getMessage() != null) {
             userId = update.getMessage().getFrom().getId();
+            username = update.getMessage().getFrom().getUserName();
         } else {
             userId = update.getCallbackQuery().getFrom().getId();
+            username = update.getCallbackQuery().getFrom().getUserName();
         }
+
+        User user = getOrCreateUser(userId, username);
+
         State state = stateMap.getOrDefault(userId, new State(userId, Menu.MAIN));
         stateMap.put(userId, state);
 
@@ -70,12 +82,51 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void onCallback(Update update, State state) {
+        long userId = update.getCallbackQuery().getFrom().getId();
+
+
         // TODO: rework
 //        InlineKeyboardMarkup kbm = bot.Keyboards.getKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
-        message.setText("Ответ на callback#" + update.getCallbackQuery().getId()); // todo: write prod message start
+        message.setText("Ответ на callback#" + update.getCallbackQuery().getId() +
+                ", data:" + update.getCallbackQuery().getData()); // todo: write prod message start
 //        message.setReplyMarkup(kbm);
+
+        String[] callbackData = update.getCallbackQuery().getData().split("\\+");
+        String callbackCommand = callbackData[0];
+        String callbackArg = null;
+        if (callbackData.length == 2) {
+            callbackArg = callbackData[1];
+        }
+        switch (callbackCommand) {
+            case "main":
+                sendMessageMainMenu(update, state);
+                break;
+            case "settings":
+                break;
+            case "all_groups":
+                sendMessageAllGroups(userId);
+                break;
+            case "add_group":
+                break;
+            case "delete_group":
+                break;
+            case "retrieve_group":
+                break;
+            case "all_products":
+                break;
+            case "add_product":
+                break;
+            case "delete_product":
+                break;
+            case "reset_product":
+                break;
+            case "toggle_notifications":
+                break;
+        }
+
+
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -114,12 +165,10 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageNotKnownCommand(Update update, State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getHelpKeyboard();
         state.currentMenu = Menu.MAIN;
         SendMessage message = new SendMessage();
         message.setChatId(update.getMessage().getFrom().getId());
         message.setText("Бот такой команды не знает =(.");
-        message.setReplyMarkup(kbm);
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -128,7 +177,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageMainMenu(Update update, State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getHelpKeyboard();
+        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         state.currentMenu = Menu.MAIN;
         SendMessage message = new SendMessage();
         message.setChatId(update.getMessage().getFrom().getId());
@@ -139,6 +188,11 @@ public class NotificationBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendMessageAllGroups(long userId) {
+        List<Group> groups = getGroups(userId);
+        System.out.println(groups);
     }
 
     private ProductAddStatus addProduct(long userId, String productUrl) {
@@ -201,7 +255,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     private void sendReport(String productUrl, ProductAddStatus status, long userId) {
         SendMessage message = new SendMessage();
         message.setChatId(Constants.ADMIN_ID);
-        message.setText("Report:\n\nUserID:"+userId+"\nstatus:"+status+"productUrl:"+productUrl);
+        message.setText("Report:\n\nUserID:" + userId + "\nstatus:" + status + "productUrl:" + productUrl);
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -238,18 +292,6 @@ public class NotificationBot extends TelegramLongPollingBot {
             this.userId = userId;
             this.currentMenu = currentMenu;
             this.page = page;
-        }
-    }
-    // TODO replace this to Hibernate
-    private class Group {
-        int id;
-        String name;
-        long userId;
-
-        public Group(int id, String name, long userId) {
-            this.id = id;
-            this.name = name;
-            this.userId = userId;
         }
     }
 
