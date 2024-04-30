@@ -15,16 +15,19 @@ public class User {
     @Column(name="id", nullable=false, unique=true, length=11)
     private Long id;
 
-    @Column(name="name", nullable=false)
-    private String name;
+    @Column(name="username", nullable=false)
+    private String username;
 
-    @Column(name="tgId", nullable=false, unique=true)
+    @Column(name="tg_id", nullable=false, unique=true)
     private long tgId;
 
     @OneToMany(mappedBy="owner", fetch=FetchType.LAZY)
     private List<Group> groups;
 
-    @Column(name="createdAt", nullable=false)
+    @OneToMany(mappedBy="owner", fetch=FetchType.LAZY)
+    private List<Product> products;
+
+    @Column(name="created_at", nullable=false)
     private Instant createdAt;
 
     @PrePersist
@@ -36,8 +39,8 @@ public class User {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getUsername() {
+        return username;
     }
 
     public long getTgId() {
@@ -48,12 +51,16 @@ public class User {
         return groups;
     }
 
+    public List<Product> getProducts() {
+        return products;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public User(String name, long tgId) {
-        this.name = name;
+    public User(String username, long tgId) {
+        this.username = username;
         this.tgId = tgId;
     }
 
@@ -64,7 +71,7 @@ public class User {
     public String toString() {
         return "User{" +
                 "id=" + id +
-                ", name='" + name + '\'' +
+                ", name='" + username + '\'' +
                 ", tgId=" + tgId +
                 '}';
     }

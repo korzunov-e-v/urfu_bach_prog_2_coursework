@@ -15,7 +15,7 @@ public class Marketplace {
     @Column(name="name", nullable=false)
     private String name;
 
-    @Column(name="baseUrl", nullable=false)
+    @Column(name="base_url", nullable=false)
     private String baseUrl;
 
     public Marketplace(String name, String baseUrl) {

@@ -25,7 +25,7 @@ public class Group {
     @OneToMany(mappedBy="groupId", fetch=FetchType.LAZY)
     private List<Product> products;
 
-    @Column(name="createdAt", nullable=false)
+    @Column(name="created_at", nullable=false)
     private Instant createdAt;
 
     @PrePersist

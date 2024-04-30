@@ -18,14 +18,18 @@ public class Product {
     private String name;
 
     @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="marketplace_id", nullable=false)
+    @JoinColumn(name="marketplace_id")
     private Marketplace marketplace;
 
     @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="groupId_id", nullable=false)
+    @JoinColumn(name="group_id")
     private Group groupId;
 
-    @Column(name="createdAt", nullable=false)
+    @ManyToOne(fetch=FetchType.LAZY)
+    @JoinColumn(name="owner_id", nullable=false)
+    private User owner;
+
+    @Column(name="created_at")
     private Instant createdAt;
 
     @PrePersist
