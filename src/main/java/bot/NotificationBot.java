@@ -1,19 +1,17 @@
 package bot;
 
 import database.HibernateUtil;
-import database.models.Group;
 import database.models.User;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
 
-import static bot.Queries.getGroups;
+import static bot.Messaging.*;
 import static bot.Queries.getOrCreateUser;
 
 public class NotificationBot extends TelegramLongPollingBot {
@@ -56,9 +54,9 @@ public class NotificationBot extends TelegramLongPollingBot {
         if (state.currentMenu == Menu.ADD_PRODUCT) {
             if (update.getMessage().hasText()) {
                 String productUrl = update.getMessage().getText();
-                ProductAddStatus status = addProduct(userId, productUrl);
-                sendMessageAddProductSuccess(userId, status);
-                if (status != ProductAddStatus.SUCCESS) {
+                ProductCreationStatus status = addProduct(userId, productUrl);
+                sendMessageAddProductSuccess(update, state, status);
+                if (status != ProductCreationStatus.SUCCESS) {
                     sendReport(productUrl, status, userId);
                 }
             } else {
@@ -88,7 +86,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         // TODO: rework
 //        InlineKeyboardMarkup kbm = bot.Keyboards.getKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(userId);
         message.setText("Ответ на callback#" + update.getCallbackQuery().getId() +
                 ", data:" + update.getCallbackQuery().getData()); // todo: write prod message start
 //        message.setReplyMarkup(kbm);
@@ -106,7 +104,7 @@ public class NotificationBot extends TelegramLongPollingBot {
             case "settings":
                 break;
             case "all_groups":
-                sendMessageAllGroups(userId);
+                sendMessageAllGroups(update, state);
                 break;
             case "add_group":
                 break;
@@ -134,14 +132,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendMessageStart(Update update, State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
-        state.currentMenu = Menu.MAIN;
-
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
-        message.setText("Привет. Это стартовое сообщение"); // todo: write prod message start
-        message.setReplyMarkup(kbm);
+    private void sendMessage(SendMessage message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -149,82 +140,52 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendMessageHelp(Update update, State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getHelpKeyboard();
-        state.currentMenu = Menu.HELP;
+    private void sendMessageStart(Update update, State state) {
+        state.currentMenu = Menu.MAIN;
+        SendMessage message = getMessageStart(update);
+        sendMessage(message);
+    }
 
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
-        message.setText("Привет. Это справка."); // todo: write prod message start
-        message.setReplyMarkup(kbm);
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+    private void sendMessageHelp(Update update, State state) {
+        state.currentMenu = Menu.HELP;
+        SendMessage message = getMessageHelp(update);
+        sendMessage(message);
     }
 
     private void sendMessageNotKnownCommand(Update update, State state) {
         state.currentMenu = Menu.MAIN;
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getFrom().getId());
-        message.setText("Бот такой команды не знает =(.");
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+        SendMessage message = getMessageNotKnownCommand(update);
+        sendMessage(message);
     }
 
     private void sendMessageMainMenu(Update update, State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         state.currentMenu = Menu.MAIN;
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getFrom().getId());
-        message.setText("Это главное меню"); // todo: write prod message start
-        message.setReplyMarkup(kbm);
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+        SendMessage message = getMessageMainMenu(update);
+        sendMessage(message);
     }
 
-    private void sendMessageAllGroups(long userId) {
-        List<Group> groups = getGroups(userId);
-        System.out.println(groups);
+    private void sendMessageAllGroups(Update update, State state) {
+        state.currentMenu = Menu.GROUPS;
+        SendMessage message = getMessageAllGroups(update, state);
+        sendMessage(message);
     }
 
-    private ProductAddStatus addProduct(long userId, String productUrl) {
+    // TODO: переместить в Queries
+    private ProductCreationStatus addProduct(long userId, String productUrl) {
         SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
         Session session = sessionFactory.openSession();
         // TODO: check productUrl
         // TODO: add product to db
 //        session.persist(new Product()); // TODO: создать конструктор
-        return ProductAddStatus.SUCCESS;
+        return ProductCreationStatus.SUCCESS;
     }
 
-    private void sendMessageAddProductSuccess(long userId, ProductAddStatus status) {
-//        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelAddKeyboard();
-        SendMessage message = new SendMessage();
-        message.setChatId(userId);
-        if (status == ProductAddStatus.SUCCESS) {
-            message.setText("Продукт успешно добавлен."); // todo: write prod message start
-        } else if (status == ProductAddStatus.UNEXPECTED_MARKET) {
-            message.setText("Такой магазин не поддерживается. Администратор добавит возможность отслеживать цены в данном магазине в близжайшее время.");
-        } else if (status == ProductAddStatus.UNEXPECTED_URL) {
-            message.setText("Данная ссылка ведёт не на страницу товара.");
-        } else if (status == ProductAddStatus.NO_PRODUCT) {
-            message.setText("Данная страница не содержит товара. Возможно такого товара нет.");
-        }
-//        message.setReplyMarkup(kbm);
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+    private void sendMessageAddProductSuccess(Update update, State state, ProductCreationStatus status) {
+        SendMessage message = getMessageAddProductSuccess(update, state, status);
+        sendMessage(message);
     }
 
+    // TODO
     private void sendMessageAddProductUnexpected(long userId) {
 //        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelAddKeyboard();
         SendMessage message = new SendMessage();
@@ -252,7 +213,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendReport(String productUrl, ProductAddStatus status, long userId) {
+    private void sendReport(String productUrl, ProductCreationStatus status, long userId) {
         SendMessage message = new SendMessage();
         message.setChatId(Constants.ADMIN_ID);
         message.setText("Report:\n\nUserID:" + userId + "\nstatus:" + status + "productUrl:" + productUrl);
@@ -295,22 +256,32 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-    private enum ProductAddStatus {
+    enum ProductCreationStatus {
         SUCCESS,
         UNEXPECTED_MARKET,
         UNEXPECTED_URL,
         NO_PRODUCT,
     }
 
-    private enum Menu {
-        MAIN,
-        GROUPS,
-        GROUP_RETRIEVE,
-        ALL,
-        ADD_PRODUCT,
-        DELETE_PRODUCT,
-        RESET_PRODUCT,
-        SETTINGS,
-        HELP
+    enum Menu {
+        MAIN("main"),
+        GROUPS("groups"),
+        GROUP_RETRIEVE("retrieve_group"),
+        ALL_PRODUCTS("all_products"),
+        ADD_PRODUCT("add_product"),
+        DELETE_PRODUCT("delete_product"),
+        RESET_PRODUCT("reset_product"),
+        SETTINGS("settings"),
+        HELP("help");
+
+        private final String command;
+
+        public String getCommand() {
+            return command;
+        }
+
+        Menu(String command) {
+            this.command = command;
+        }
     }
 }
