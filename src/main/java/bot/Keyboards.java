@@ -8,6 +8,7 @@ import java.util.List;
 
 import static bot.NotificationBot.State;
 
+// TODO
 class Keyboards {
     static InlineKeyboardMarkup getMainKeyboard() {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
@@ -38,8 +39,7 @@ class Keyboards {
         return markupInline;
     }
 
-//    static InlineKeyboardMarkup getGroupsKeyboard(bot.NotificationBot.State state, List<Group> groups) {
-    static InlineKeyboardMarkup getGroupsKeyboard(State state) {
+    static InlineKeyboardMarkup getAllGroupsKeyboard(State state) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
@@ -98,7 +98,23 @@ class Keyboards {
         return markupInline;
     }
 
-    static InlineKeyboardMarkup getGroupRetrieveKeyboard(State state) {
+    static InlineKeyboardMarkup getAddGroupKeyboard(State state) {
+        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        // TODO
+        markupInline.setKeyboard(rowsInline);
+        return markupInline;
+    }
+
+    static InlineKeyboardMarkup getDeleteGroupsKeyboard(State state) {
+        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        // TODO
+        markupInline.setKeyboard(rowsInline);
+        return markupInline;
+    }
+
+    static InlineKeyboardMarkup getRetrieveGroupKeyboard(State state) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
@@ -158,6 +174,14 @@ class Keyboards {
         return markupInline;
     }
 
+    static InlineKeyboardMarkup getRetrieveProductsKeyboard(State state) {
+        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        // TODO
+        markupInline.setKeyboard(rowsInline);
+        return markupInline;
+    }
+
     static InlineKeyboardMarkup getResetProductsKeyboard(State state) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
@@ -172,7 +196,7 @@ class Keyboards {
         List<InlineKeyboardButton> rowInlineBack = new ArrayList<>();
         InlineKeyboardButton buttonBack = new InlineKeyboardButton();
         buttonBack.setText("Завершить");
-        String command = NotificationBot.Menu.GROUP_RETRIEVE.getCommand();
+        String command = NotificationBot.Menu.RETRIEVE_GROUP.getCommand();
         String arg = String.valueOf(state.groupId);
         buttonBack.setCallbackData(command + "+" + arg);
         rowInlineBack.add(buttonBack);
@@ -201,18 +225,4 @@ class Keyboards {
         markupInline.setKeyboard(rowsInline);
         return markupInline;
     }
-//
-//    static InlineKeyboardMarkup getCancelAddKeyboard() {
-//        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-//        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-//        List<InlineKeyboardButton> rowInlineBack = new ArrayList<>();
-//        InlineKeyboardButton buttonCancel = new InlineKeyboardButton();
-//        buttonCancel.setText("Закончить добавление товаров.");
-//        buttonCancel.setCallbackData("group_retrieve=" + state.groupId);
-//        rowInlineBack.add(buttonCancel);
-//        rowsInline.add(rowInlineBack);
-//        markupInline.setKeyboard(rowsInline);
-//        return markupInline;
-//    }
-
 }
