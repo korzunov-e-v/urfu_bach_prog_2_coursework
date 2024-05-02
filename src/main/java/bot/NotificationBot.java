@@ -1,19 +1,24 @@
 package bot;
 
+import database.HibernateUtil;
+import database.models.Group;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import static bot.Messaging.*;
-import static bot.Queries.addProduct;
-import static bot.Queries.getOrCreateUser;
+import static bot.Queries.*;
 
 public class NotificationBot extends TelegramLongPollingBot {
 
     private final Map<Long, State> stateMap;
+    private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     public NotificationBot(String botToken) {
         super(botToken);
@@ -22,27 +27,29 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        long userId;
-        String username;
-        if (update.getMessage() != null) {
-            userId = update.getMessage().getFrom().getId();
-            username = update.getMessage().getFrom().getUserName();
-        } else {
-            userId = update.getCallbackQuery().getFrom().getId();
-            username = update.getCallbackQuery().getFrom().getUserName();
-        }
+        try (Session session = sessionFactory.getCurrentSession()) {
+            long userId;
+            String username;
+            if (update.getMessage() != null) {
+                userId = update.getMessage().getFrom().getId();
+                username = update.getMessage().getFrom().getUserName();
+            } else {
+                userId = update.getCallbackQuery().getFrom().getId();
+                username = update.getCallbackQuery().getFrom().getUserName();
+            }
 
-        getOrCreateUser(userId, username);
+            getOrCreateUser(userId, username);
 
-        State state = stateMap.getOrDefault(userId, new State(userId, Menu.MAIN));
-        stateMap.put(userId, state);
+            State state = stateMap.getOrDefault(userId, new State(userId, Menu.MAIN));
+            stateMap.put(userId, state);
 
-        if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
-            onCommand(update, state);
-        } else if (update.hasMessage() && update.getMessage().hasText()) {
-            onText(update, state);
-        } else if (update.hasCallbackQuery()) {
-            onCallback(update, state);
+            if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
+                onCommand(update, state);
+            } else if (update.hasMessage() && update.getMessage().hasText()) {
+                onText(update, state);
+            } else if (update.hasCallbackQuery()) {
+                onCallback(update, state);
+            }
         }
     }
 
@@ -60,6 +67,10 @@ public class NotificationBot extends TelegramLongPollingBot {
             } else {
                 sendMessageAddProductUnexpected(state);
             }
+        } else if (state.currentMenu == Menu.ADD_GROUPS) {
+            String groupName = update.getMessage().getText();
+            GroupCreationStatus status = addGroup(userId, groupName);;
+            sendMessageCurrentState(state);
         } else {
             sendMessageCurrentState(state);
         }
@@ -165,7 +176,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageAddGroup(State state) {
-        state.currentMenu = Menu.GROUPS;
+        state.currentMenu = Menu.ADD_GROUPS;
         SendMessage message = getMessageAddGroup(state);
         sendMessage(message);
     }
@@ -228,6 +239,7 @@ public class NotificationBot extends TelegramLongPollingBot {
             case MAIN -> sendMessageMainMenu(state);
             case HELP -> sendMessageHelp(state);
             case GROUPS -> sendMessageAllGroups(state);
+            case ADD_GROUPS -> sendMessageAddGroup(state);
             case ADD_PRODUCTS -> sendMessageAddProducts(state);
             case RETRIEVE_GROUP -> sendMessageRetrieveGroup(state);
             case SETTINGS -> sendMessageSettings(state);
@@ -285,10 +297,16 @@ public class NotificationBot extends TelegramLongPollingBot {
         NO_PRODUCT,
     }
 
+    enum GroupCreationStatus {
+        SUCCESS,
+        ALREADY_EXISTS,
+    }
+
     enum Menu {
         MAIN("main"),
         GROUPS("groups"),
         RETRIEVE_GROUP("retrieve_group"),
+        ADD_GROUPS("add_groups"),
         ALL_PRODUCTS("all_products"),
         ADD_PRODUCTS("add_products"),
         DELETE_PRODUCTS("delete_products"),

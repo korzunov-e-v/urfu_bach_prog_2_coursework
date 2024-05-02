@@ -8,53 +8,55 @@ import database.models.User;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 
 import java.util.List;
 
 import static bot.NotificationBot.ProductCreationStatus;
-import static org.hibernate.resource.transaction.spi.TransactionStatus.COMMITTED;
+import static bot.NotificationBot.GroupCreationStatus;
 
 class Queries {
     private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     static User getUser(long userId) {
-        try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<User> criteriaQuery = builder.createQuery(User.class);
-            Root<User> root = criteriaQuery.from(User.class);
-            criteriaQuery.select(root).where(builder.equal(root.get("tgId"), userId));
-            TypedQuery<User> query = session.createQuery(criteriaQuery);
-            List<User> result = query.getResultList();
+        Session session = sessionFactory.getCurrentSession();
+//        Transaction transaction = session.beginTransaction();
 
-            if (result.size() > 0) {
-                return result.get(0);
-            } else {
-                return null;
-            }
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<User> criteriaQuery = builder.createQuery(User.class);
+        Root<User> root = criteriaQuery.from(User.class);
+        criteriaQuery.select(root).where(builder.equal(root.get("tgId"), userId));
+        TypedQuery<User> query = session.createQuery(criteriaQuery);
+        List<User> result = query.getResultList();
+
+//        transaction.rollback();
+        if (result.size() > 0) {
+            return result.get(0);
+        } else {
+            return null;
         }
     }
 
     static User getOrCreateUser(long userId, String username) {
+        Session session = sessionFactory.getCurrentSession();
         User user = getUser(userId);
 
         if (user == null) {
-            try (Session session = sessionFactory.openSession()) {
-                Transaction transaction = session.beginTransaction();
-                user = new User(username, userId);
-                session.persist(user);
-                transaction.commit();
-            }
+            user = new User(username, userId);
+            session.persist(user);
         } else {
             System.out.println("User found: " + user);
         }
+
         return user;
     }
 
     static List<Group> getGroups(long userId) {
+        Session session = sessionFactory.getCurrentSession();
+
         User user = getUser(userId);
         List<Group> groups = null;
 
@@ -63,44 +65,72 @@ class Queries {
         } else {
             groups = user.getGroups();
         }
+
         return groups;
     }
 
     static Marketplace getMarketplace(String baseUrl) {
-        try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<Marketplace> criteriaQuery = builder.createQuery(Marketplace.class);
-            Root<Marketplace> root = criteriaQuery.from(Marketplace.class);
-            criteriaQuery.select(root).where(builder.equal(root.get("base_url"), baseUrl));
-            TypedQuery<Marketplace> query = session.createQuery(criteriaQuery);
-            List<Marketplace> result = query.getResultList();
+        Session session = sessionFactory.getCurrentSession();
+//        Transaction transaction = session.beginTransaction();
 
-            if (result.size() > 0) {
-                return result.get(0);
-            } else {
-                return null;
-            }
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Marketplace> criteriaQuery = builder.createQuery(Marketplace.class);
+        Root<Marketplace> root = criteriaQuery.from(Marketplace.class);
+        criteriaQuery.select(root).where(builder.equal(root.get("base_url"), baseUrl));
+        TypedQuery<Marketplace> query = session.createQuery(criteriaQuery);
+        List<Marketplace> result = query.getResultList();
+
+//        transaction.rollback();
+        if (result.size() > 0) {
+            return result.get(0);
+        } else {
+            return null;
         }
     }
 
-    static Group getGroup(long groupId) {
-        try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<Group> criteriaQuery = builder.createQuery(Group.class);
-            Root<Group> root = criteriaQuery.from(Group.class);
-            criteriaQuery.select(root).where(builder.equal(root.get("owner_id"), groupId));
-            TypedQuery<Group> query = session.createQuery(criteriaQuery);
-            List<Group> result = query.getResultList();
+    static Group getGroupByOwner(long ownerId) {
+        Session session = sessionFactory.getCurrentSession();
+//        Transaction transaction= session.beginTransaction();
 
-            if (result.size() > 0) {
-                return result.get(0);
-            } else {
-                return null;
-            }
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Group> criteriaQuery = builder.createQuery(Group.class);
+        Root<Group> root = criteriaQuery.from(Group.class);
+        criteriaQuery.select(root).where(builder.equal(root.get("ownerId"), ownerId));
+        TypedQuery<Group> query = session.createQuery(criteriaQuery);
+        List<Group> result = query.getResultList();
+
+//        transaction.rollback();
+        if (result.size() > 0) {
+            return result.get(0);
+        } else {
+            return null;
+        }
+    }
+
+    static Group getGroupByName(long userId, String name) {
+        Session session = sessionFactory.getCurrentSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Group> criteriaQuery = builder.createQuery(Group.class);
+        Root<Group> root = criteriaQuery.from(Group.class);
+
+        Predicate ownerPredicate = builder.equal(root.get("owner"), getUser(userId));
+        Predicate namePredicate = builder.equal(root.get("name"), name);
+        Predicate predicate = builder.and(ownerPredicate, namePredicate);
+        criteriaQuery.select(root).where(predicate);
+
+        TypedQuery<Group> query = session.createQuery(criteriaQuery);
+        List<Group> result = query.getResultList();
+
+        if (result.size() > 0) {
+            return result.get(0);
+        } else {
+            return null;
         }
     }
 
     static ProductCreationStatus addProduct(long userId, long groupId, String productUrl) {
+        Session session = sessionFactory.getCurrentSession();
         // TODO: check productUrl
         // TODO: parse (get name, price)
 
@@ -108,22 +138,32 @@ class Queries {
         String marketplaceBaseUrl = null;
 
         Marketplace marketplace = getMarketplace(marketplaceBaseUrl);
-        Group group = getGroup(groupId);
+        Group group = getGroupByOwner(groupId);
 
-
-        try (Session session = sessionFactory.openSession()) {
-            Transaction transaction = session.beginTransaction();
-            session.persist(new Product(productName, marketplace, group));
-            transaction.commit();
-
-            if (transaction.getStatus() == COMMITTED) {
-                return ProductCreationStatus.SUCCESS;
-            } else {
-                return ProductCreationStatus.FAILED;
-            }
-        }
-
+//        Transaction transaction = session.beginTransaction();
+        session.persist(new Product(productName, marketplace, group));
+//        transaction.commit();
+//
+//        if (transaction.getStatus() == COMMITTED) {
+//            return ProductCreationStatus.SUCCESS;
+//        } else {
+//            return ProductCreationStatus.FAILED;
+//        }
         // TODO: write to mongo
+        return ProductCreationStatus.SUCCESS;
+    }
 
+    static GroupCreationStatus addGroup(long userId, String groupName) {
+        Session session = sessionFactory.getCurrentSession();
+
+        Group group = getGroupByName(userId, groupName);
+
+        if (group != null) {
+            return GroupCreationStatus.ALREADY_EXISTS;
+        } else {
+            group = new Group(groupName, getUser(userId));
+            session.persist(group);
+        }
+        return GroupCreationStatus.SUCCESS;
     }
 }

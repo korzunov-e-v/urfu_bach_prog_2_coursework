@@ -6,8 +6,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import java.util.List;
 
-import static bot.NotificationBot.State;
 import static bot.NotificationBot.ProductCreationStatus;
+import static bot.NotificationBot.State;
 import static bot.Queries.getGroups;
 
 public class Messaging {
@@ -71,7 +71,15 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getAddGroupKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
-        message.setText("Привет. Это меню добавления группы."); // todo: write prod message
+        List<Group> groups = getGroups(state.userId);
+
+        StringBuilder sb = new StringBuilder("Привет. Это меню добавления группы. \n");
+        for (Group group : groups) {
+            sb.append(group.toString());
+            sb.append("\n");
+        }
+
+        message.setText(sb.toString()); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
     }
