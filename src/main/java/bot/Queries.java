@@ -17,13 +17,13 @@ import java.util.List;
 
 import static bot.NotificationBot.ProductCreationStatus;
 import static bot.NotificationBot.GroupCreationStatus;
+import static bot.NotificationBot.GroupDeletionStatus;
 
 class Queries {
     private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     static User getUser(long userId) {
         Session session = sessionFactory.getCurrentSession();
-//        Transaction transaction = session.beginTransaction();
 
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<User> criteriaQuery = builder.createQuery(User.class);
@@ -32,7 +32,6 @@ class Queries {
         TypedQuery<User> query = session.createQuery(criteriaQuery);
         List<User> result = query.getResultList();
 
-//        transaction.rollback();
         if (result.size() > 0) {
             return result.get(0);
         } else {
@@ -55,15 +54,13 @@ class Queries {
     }
 
     static List<Group> getGroups(long userId) {
-        Session session = sessionFactory.getCurrentSession();
-
         User user = getUser(userId);
         List<Group> groups = null;
 
         if (user == null) {
             System.out.println("User not found! " + userId);
         } else {
-            groups = user.getGroups();
+            groups = user.getGroups().stream().toList();
         }
 
         return groups;
@@ -71,7 +68,6 @@ class Queries {
 
     static Marketplace getMarketplace(String baseUrl) {
         Session session = sessionFactory.getCurrentSession();
-//        Transaction transaction = session.beginTransaction();
 
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Marketplace> criteriaQuery = builder.createQuery(Marketplace.class);
@@ -80,7 +76,6 @@ class Queries {
         TypedQuery<Marketplace> query = session.createQuery(criteriaQuery);
         List<Marketplace> result = query.getResultList();
 
-//        transaction.rollback();
         if (result.size() > 0) {
             return result.get(0);
         } else {
@@ -88,9 +83,9 @@ class Queries {
         }
     }
 
+    // TODO
     static Group getGroupByOwner(long ownerId) {
         Session session = sessionFactory.getCurrentSession();
-//        Transaction transaction= session.beginTransaction();
 
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Group> criteriaQuery = builder.createQuery(Group.class);
@@ -99,7 +94,6 @@ class Queries {
         TypedQuery<Group> query = session.createQuery(criteriaQuery);
         List<Group> result = query.getResultList();
 
-//        transaction.rollback();
         if (result.size() > 0) {
             return result.get(0);
         } else {
@@ -138,17 +132,10 @@ class Queries {
         String marketplaceBaseUrl = null;
 
         Marketplace marketplace = getMarketplace(marketplaceBaseUrl);
-        Group group = getGroupByOwner(groupId);
+        Group group = getGroupByOwner(groupId); // TODO
 
-//        Transaction transaction = session.beginTransaction();
         session.persist(new Product(productName, marketplace, group));
-//        transaction.commit();
-//
-//        if (transaction.getStatus() == COMMITTED) {
-//            return ProductCreationStatus.SUCCESS;
-//        } else {
-//            return ProductCreationStatus.FAILED;
-//        }
+
         // TODO: write to mongo
         return ProductCreationStatus.SUCCESS;
     }
@@ -165,5 +152,21 @@ class Queries {
             session.persist(group);
         }
         return GroupCreationStatus.SUCCESS;
+    }
+
+    static GroupDeletionStatus deleteGroup(long userId, long groupId) {
+        Session session = sessionFactory.getCurrentSession();
+
+        Group group = session.get(Group.class, groupId);
+
+        if (group != null) {
+            if (group.getOwner().getId() != userId) {
+                return GroupDeletionStatus.FORBIDDEN;
+            }
+            session.remove(group);
+            return GroupDeletionStatus.SUCCESS;
+        } else {
+            return GroupDeletionStatus.NOT_FOUND;
+        }
     }
 }

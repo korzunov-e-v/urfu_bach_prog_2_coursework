@@ -7,8 +7,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import java.util.List;
 
 import static bot.NotificationBot.ProductCreationStatus;
+import static bot.NotificationBot.GroupCreationStatus;
+import static bot.NotificationBot.GroupDeletionStatus;
 import static bot.NotificationBot.State;
-import static bot.Queries.getGroups;
 
 public class Messaging {
 
@@ -57,26 +58,15 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageAllGroups(State state) {
+    static SendMessage getMessageAllGroups(State state, List<Group> groups) {
         InlineKeyboardMarkup kbm = Keyboards.getAllGroupsKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
-        List<Group> groups = getGroups(state.userId);
-        message.setText("Привет. Это группы. \n" + groups); // todo: write prod message
-        message.setReplyMarkup(kbm);
-        return message;
-    }
 
-    static SendMessage getMessageAddGroup(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getAddGroupKeyboard(state);
-        SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
-        List<Group> groups = getGroups(state.userId);
-
-        StringBuilder sb = new StringBuilder("Привет. Это меню добавления группы. \n");
+        StringBuilder sb = new StringBuilder("Привет. Это группы. \n\n");
         for (Group group : groups) {
             sb.append(group.toString());
-            sb.append("\n");
+            sb.append("\n\n");
         }
 
         message.setText(sb.toString()); // todo: write prod message
@@ -84,12 +74,51 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageDeleteGroups(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getDeleteGroupsKeyboard(state);
+    static SendMessage getMessageAddGroups(State state, List<Group> groups) {
+        InlineKeyboardMarkup kbm = Keyboards.getAddGroupKeyboard(state);
+        SendMessage message = new SendMessage();
+        message.setChatId(state.userId);
+
+        StringBuilder sb = new StringBuilder("Привет. Это меню добавления группы. \n\n");
+        for (Group group : groups) {
+            sb.append(group.toString());
+            sb.append("\n\n");
+        }
+
+        message.setText(sb.toString()); // todo: write prod message
+        message.setReplyMarkup(kbm);
+        return message;
+    }
+
+    static SendMessage getMessageAddGroupSuccess(State state, GroupCreationStatus status) {
+        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelCreateGroupKeyboard(state);
+        SendMessage message = new SendMessage();
+        message.setChatId(state.userId);
+        switch (status) {
+            case SUCCESS -> message.setText("Группа успешно добавлена."); // todo: write prod message
+            case ALREADY_EXISTS -> message.setText("Группа не добавлена, группа с таким именем уже существует.");
+        }
+        message.setReplyMarkup(kbm);
+        return message;
+    }
+
+    static SendMessage getMessageDeleteGroups(State state, List<Group> groups) {
+        InlineKeyboardMarkup kbm = Keyboards.getDeleteGroupsKeyboard(state, groups);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
         message.setText("Привет. Это меню удаления группы."); // todo: write prod message
         message.setReplyMarkup(kbm);
+        return message;
+    }
+
+    static SendMessage getMessageDeleteGroupSuccess(State state, GroupDeletionStatus status, String groupName) {
+        SendMessage message = new SendMessage();
+        message.setChatId(state.userId);
+        switch (status) {
+            case SUCCESS -> message.setText("Группа '" + groupName + "' успешно удалена."); // todo: write prod message
+            case NOT_FOUND -> message.setText("Группа не удалена (не найдена)");
+            case FORBIDDEN -> message.setText("Группа не удалена (нет доступа)");
+        }
         return message;
     }
 
@@ -107,6 +136,21 @@ public class Messaging {
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
         message.setText("Привет. Это меню добавления товара."); // todo: write prod message
+        message.setReplyMarkup(kbm);
+        return message;
+    }
+
+    static SendMessage getMessageAddProductSuccess(State state, ProductCreationStatus status) {
+        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelCreateProductKeyboard(state);
+        SendMessage message = new SendMessage();
+        message.setChatId(state.userId);
+        switch (status) {
+            case SUCCESS -> message.setText("Продукт успешно добавлен."); // todo: write prod message
+            case UNEXPECTED_MARKET ->
+                    message.setText("Такой магазин не поддерживается. Администратор добавит возможность отслеживать цены в данном магазине в близжайшее время.");
+            case UNEXPECTED_URL -> message.setText("Данная ссылка ведёт не на страницу товара.");
+            case NO_PRODUCT -> message.setText("Данная страница не содержит товара. Возможно такого товара нет.");
+        }
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -147,21 +191,6 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageAddProductSuccess(State state, ProductCreationStatus status) {
-        InlineKeyboardMarkup kbm = bot.Keyboards.getCancelCreateProductKeyboard(state);
-        SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
-        switch (status) {
-            case SUCCESS -> message.setText("Продукт успешно добавлен."); // todo: write prod message
-            case UNEXPECTED_MARKET ->
-                    message.setText("Такой магазин не поддерживается. Администратор добавит возможность отслеживать цены в данном магазине в близжайшее время.");
-            case UNEXPECTED_URL -> message.setText("Данная ссылка ведёт не на страницу товара.");
-            case NO_PRODUCT -> message.setText("Данная страница не содержит товара. Возможно такого товара нет.");
-        }
-        message.setReplyMarkup(kbm);
-        return message;
-    }
-
     static SendMessage getMessageAddProductUnexpected(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getAddProductsKeyboard(state);
         SendMessage message = new SendMessage();
@@ -171,4 +200,12 @@ public class Messaging {
         return message;
     }
 
+    static SendMessage getMessageError(State state) {
+        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
+        SendMessage message = new SendMessage();
+        message.setChatId(state.userId);
+        message.setText("Произошла ошибка");
+        message.setReplyMarkup(kbm);
+        return message;
+    }
 }

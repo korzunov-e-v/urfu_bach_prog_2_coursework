@@ -4,16 +4,19 @@ import database.HibernateUtil;
 import database.models.Group;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static bot.Messaging.*;
 import static bot.Queries.*;
+import static org.hibernate.resource.transaction.spi.TransactionStatus.COMMITTED;
 
 public class NotificationBot extends TelegramLongPollingBot {
 
@@ -27,63 +30,51 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        try (Session session = sessionFactory.getCurrentSession()) {
-            long userId;
-            String username;
-            if (update.getMessage() != null) {
-                userId = update.getMessage().getFrom().getId();
-                username = update.getMessage().getFrom().getUserName();
-            } else {
-                userId = update.getCallbackQuery().getFrom().getId();
-                username = update.getCallbackQuery().getFrom().getUserName();
-            }
+        long userId;
+        String username;
+        if (update.getMessage() != null) {
+            userId = update.getMessage().getFrom().getId();
+            username = update.getMessage().getFrom().getUserName();
+        } else {
+            userId = update.getCallbackQuery().getFrom().getId();
+            username = update.getCallbackQuery().getFrom().getUserName();
+        }
 
-            getOrCreateUser(userId, username);
+        Session session = sessionFactory.getCurrentSession();
+        session.getTransaction().begin();
+        getOrCreateUser(userId, username);
+        session.getTransaction().commit();
 
-            State state = stateMap.getOrDefault(userId, new State(userId, Menu.MAIN));
-            stateMap.put(userId, state);
+        State state = stateMap.getOrDefault(userId, new State(userId, Menu.MAIN));
+        stateMap.put(userId, state);
 
-            if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
-                onCommand(update, state);
-            } else if (update.hasMessage() && update.getMessage().hasText()) {
-                onText(update, state);
-            } else if (update.hasCallbackQuery()) {
-                onCallback(update, state);
-            }
+        if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
+            onCommand(update, state);
+        } else if (update.hasMessage() && update.getMessage().hasText()) {
+            onText(update, state);
+        } else if (update.hasCallbackQuery()) {
+            onCallback(update, state);
         }
     }
 
     // TODO
     private void onText(Update update, State state) {
-        long userId = update.getMessage().getFrom().getId();
-        if (state.currentMenu == Menu.ADD_PRODUCTS) {
-            if (update.getMessage().hasText()) {
-                String productUrl = update.getMessage().getText();
-                ProductCreationStatus status = addProduct(userId, state.groupId, productUrl);
-                sendMessageAddProductSuccess(state, status);
-                if (status != ProductCreationStatus.SUCCESS) {
-                    sendReport(productUrl, status, userId);
-                }
-            } else {
-                sendMessageAddProductUnexpected(state);
-            }
-        } else if (state.currentMenu == Menu.ADD_GROUPS) {
-            String groupName = update.getMessage().getText();
-            GroupCreationStatus status = addGroup(userId, groupName);;
-            sendMessageCurrentState(state);
-        } else {
-            sendMessageCurrentState(state);
+        String messageText = update.getMessage().getText();
+        switch (state.currentMenu) {
+            case ADD_PRODUCTS -> processAddProduct(state, messageText);
+            case ADD_GROUPS -> processAddGroup(state, messageText);
+            default -> sendMessageCurrentState(state);
         }
     }
 
     private void onCommand(Update update, State state) {
         String command = update.getMessage().getText();
         switch (command) {
-            case "/start" -> sendMessageStart(state);
-            case "/help" -> sendMessageHelp(state);
+            case "/start" -> processStartMenu(state);
+            case "/help" -> processHelpMenu(state);
             default -> {
-                sendMessageNotKnownCommand(state);
-                sendMessageMainMenu(state);
+                processNotKnownCommand(state);
+                processMainMenu(state);
             }
         }
     }
@@ -95,12 +86,10 @@ public class NotificationBot extends TelegramLongPollingBot {
 
 
         // TODO: for debug
-//        InlineKeyboardMarkup kbm = bot.Keyboards.getKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(userId);
         message.setText("Ответ на callback#" + update.getCallbackQuery().getId() +
                 ", data:" + update.getCallbackQuery().getData());
-//        message.setReplyMarkup(kbm);
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -115,18 +104,23 @@ public class NotificationBot extends TelegramLongPollingBot {
             callbackArg = callbackData[1];
         }
 
-        switch (callbackCommand) {
-            case "main" -> sendMessageMainMenu(state);
-            case "settings" -> sendMessageSettings(state);
-            case "all_groups" -> sendMessageAllGroups(state);
-            case "add_group" -> sendMessageAddGroup(state);
-            case "delete_group" -> sendMessageDeleteGroups(state);
-            case "retrieve_group" -> sendMessageRetrieveGroup(state);
-            case "all_products" -> sendMessageAllProducts(state);
-            case "add_product" -> sendMessageAddProducts(state);
-            case "delete_product" -> sendMessageDeleteProducts(state);
-            case "retrieve_product" -> sendMessageRetrieveProduct(state);
-            case "reset_product" -> sendMessageResetProduct(state);
+        Menu command = Menu.valueOf(callbackCommand);
+
+        switch (command) {
+            case MAIN -> processMainMenu(state);
+            case SETTINGS -> processSettingsMenu(state);
+            case ALL_GROUPS -> processAllGroupsMenu(state);
+            case ADD_GROUPS -> processAddGroupsMenu(state);
+            case DELETE_GROUPS -> processDeleteGroupsMenu(state);
+            case DELETE_GROUP -> processDeleteGroup(state, callbackArg);
+            case RETRIEVE_GROUP -> processRetrieveGroup(state);
+            case ALL_PRODUCTS -> processAllProducts(state);
+            case ADD_PRODUCTS -> processAddProductsMenu(state);
+            case DELETE_PRODUCTS -> processDeleteProductsMenu(state);
+//            case DELETE_PRODUCT -> processDeleteProduct(state);
+            case RETRIEVE_PRODUCT -> processRetrieveProduct(state);
+            case RESET_PRODUCTS -> processResetProductsMenu(state);
+//            case RESET_PRODUCT -> processResetProduct(state);
 //            case "toggle_notifications" -> // TODO
         }
     }
@@ -139,85 +133,168 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendMessageStart(State state) {
+    private void processStartMenu(State state) {
         state.currentMenu = Menu.MAIN;
         SendMessage message = getMessageStart(state);
         sendMessage(message);
     }
 
-    private void sendMessageHelp(State state) {
+    private void processHelpMenu(State state) {
         state.currentMenu = Menu.HELP;
         SendMessage message = getMessageHelp(state);
         sendMessage(message);
     }
 
-    private void sendMessageSettings(State state) {
+    private void processSettingsMenu(State state) {
         state.currentMenu = Menu.SETTINGS;
         SendMessage message = getMessageSettings(state);
         sendMessage(message);
     }
 
-    private void sendMessageNotKnownCommand(State state) {
+    private void processNotKnownCommand(State state) {
         state.currentMenu = Menu.MAIN;
         SendMessage message = getMessageNotKnownCommand(state);
         sendMessage(message);
     }
 
-    private void sendMessageMainMenu(State state) {
+    private void processMainMenu(State state) {
         state.currentMenu = Menu.MAIN;
         SendMessage message = getMessageMainMenu(state);
         sendMessage(message);
     }
 
-    private void sendMessageAllGroups(State state) {
-        state.currentMenu = Menu.GROUPS;
-        SendMessage message = getMessageAllGroups(state);
+    private void processAllGroupsMenu(State state) {
+        state.currentMenu = Menu.ALL_GROUPS;
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        List<Group> groups = getGroups(state.userId);
+        transaction.commit();
+
+        SendMessage message;
+        if (transaction.getStatus() == COMMITTED) {
+            message = getMessageAllGroups(state, groups);
+        } else {
+            message = getMessageError(state);
+        }
         sendMessage(message);
     }
 
-    private void sendMessageAddGroup(State state) {
+    private void processAddGroupsMenu(State state) {
         state.currentMenu = Menu.ADD_GROUPS;
-        SendMessage message = getMessageAddGroup(state);
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        List<Group> groups = getGroups(state.userId);
+        transaction.commit();
+
+        SendMessage message = getMessageAddGroups(state, groups);
         sendMessage(message);
     }
 
-    private void sendMessageDeleteGroups(State state) {
-        state.currentMenu = Menu.GROUPS;
-        SendMessage message = getMessageDeleteGroups(state);
+    private void processAddGroup(State state, String groupName) {
+        state.currentMenu = Menu.ADD_GROUPS;
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        GroupCreationStatus status = addGroup(state.userId, groupName);
+        transaction.commit();
+
+        SendMessage message;
+        if (transaction.getStatus() == COMMITTED) {
+            message = getMessageAddGroupSuccess(state, status);
+        } else {
+            message = getMessageError(state);
+        }
         sendMessage(message);
     }
 
-    private void sendMessageRetrieveGroup(State state) {
+    private void processDeleteGroupsMenu(State state) {
+        state.currentMenu = Menu.DELETE_GROUPS;
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        List<Group> groups = getGroups(state.userId);
+        transaction.commit();
+
+        SendMessage message;
+        if (transaction.getStatus() == COMMITTED) {
+            message = getMessageDeleteGroups(state, groups);
+        } else {
+            message = getMessageError(state);
+        }
+        sendMessage(message);
+    }
+
+    private void processDeleteGroup(State state, String callbackArg) {
+        state.currentMenu = Menu.DELETE_GROUPS;
+
+        long groupId = Long.parseLong(callbackArg);
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        String groupName = session.get(Group.class, groupId).getName();
+        GroupDeletionStatus status = deleteGroup(state.userId, groupId);
+        transaction.commit();
+
+        SendMessage message;
+        if (transaction.getStatus() == COMMITTED) {
+            message = getMessageDeleteGroupSuccess(state, status, groupName);
+        } else {
+            message = getMessageError(state);
+        }
+        sendMessage(message);
+        sendMessageCurrentState(state);
+    }
+
+    private void processRetrieveGroup(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageRetrieveGroup(state);
         sendMessage(message);
     }
 
-    private void sendMessageAllProducts(State state) {
+    private void processAllProducts(State state) {
         state.currentMenu = Menu.MAIN;
         SendMessage message = getMessageAllProducts(state);
         sendMessage(message);
     }
 
-    private void sendMessageAddProducts(State state) {
+    private void processAddProductsMenu(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageAddProducts(state);
         sendMessage(message);
     }
 
-    private void sendMessageDeleteProducts(State state) {
+    private void processAddProduct(State state, String productUrl) {
+        state.currentMenu = Menu.RETRIEVE_GROUP;
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        ProductCreationStatus status = addProduct(state.userId, state.groupId, productUrl);
+        transaction.commit();
+
+        SendMessage message;
+        if (transaction.getStatus() == COMMITTED) {
+            message = getMessageAddProductSuccess(state, status);
+        } else {
+            message = getMessageError(state);
+        }
+        sendMessage(message);
+    }
+
+    private void processDeleteProductsMenu(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageDeleteProducts(state);
         sendMessage(message);
     }
 
-    private void sendMessageRetrieveProduct(State state) {
+    private void processRetrieveProduct(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageRetrieveProduct(state);
         sendMessage(message);
     }
 
-    private void sendMessageResetProduct(State state) {
+    private void processResetProductsMenu(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageResetProduct(state);
         sendMessage(message);
@@ -236,16 +313,17 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     private void sendMessageCurrentState(State state) {
         switch (state.currentMenu) {
-            case MAIN -> sendMessageMainMenu(state);
-            case HELP -> sendMessageHelp(state);
-            case GROUPS -> sendMessageAllGroups(state);
-            case ADD_GROUPS -> sendMessageAddGroup(state);
-            case ADD_PRODUCTS -> sendMessageAddProducts(state);
-            case RETRIEVE_GROUP -> sendMessageRetrieveGroup(state);
-            case SETTINGS -> sendMessageSettings(state);
-            case ALL_PRODUCTS -> sendMessageAllProducts(state);
-            case RESET_PRODUCTS -> sendMessageResetProduct(state);
-            case DELETE_PRODUCTS -> sendMessageDeleteProducts(state);
+            case MAIN -> processMainMenu(state);
+            case HELP -> processHelpMenu(state);
+            case ALL_GROUPS -> processAllGroupsMenu(state);
+            case ADD_GROUPS -> processAddGroupsMenu(state);
+            case DELETE_GROUPS -> processDeleteGroupsMenu(state);
+            case ADD_PRODUCTS -> processAddProductsMenu(state);
+            case RETRIEVE_GROUP -> processRetrieveGroup(state);
+            case SETTINGS -> processSettingsMenu(state);
+            case ALL_PRODUCTS -> processAllProducts(state);
+            case RESET_PRODUCTS -> processResetProductsMenu(state);
+            case DELETE_PRODUCTS -> processDeleteProductsMenu(state);
         }
     }
 
@@ -302,26 +380,27 @@ public class NotificationBot extends TelegramLongPollingBot {
         ALREADY_EXISTS,
     }
 
+    enum GroupDeletionStatus {
+        SUCCESS,
+        NOT_FOUND,
+        FORBIDDEN
+    }
+
     enum Menu {
-        MAIN("main"),
-        GROUPS("groups"),
-        RETRIEVE_GROUP("retrieve_group"),
-        ADD_GROUPS("add_groups"),
-        ALL_PRODUCTS("all_products"),
-        ADD_PRODUCTS("add_products"),
-        DELETE_PRODUCTS("delete_products"),
-        RESET_PRODUCTS("reset_products"),
-        SETTINGS("settings"),
-        HELP("help");
-
-        private final String command;
-
-        public String getCommand() {
-            return command;
-        }
-
-        Menu(String command) {
-            this.command = command;
-        }
+        MAIN,
+        ALL_GROUPS,
+        RETRIEVE_GROUP,
+        ADD_GROUPS,
+        DELETE_GROUPS,
+        DELETE_GROUP,
+        ALL_PRODUCTS,
+        ADD_PRODUCTS,
+        RETRIEVE_PRODUCT,
+        DELETE_PRODUCTS,
+        DELETE_PRODUCT,
+        RESET_PRODUCTS,
+        RESET_PRODUCT,
+        SETTINGS,
+        HELP
     }
 }
