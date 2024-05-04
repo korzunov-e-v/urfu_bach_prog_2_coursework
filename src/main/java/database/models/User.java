@@ -10,6 +10,7 @@ import java.util.List;
 @Entity
 @Table(name="Users")
 public class User {
+
     @Id
     @GeneratedValue
     @Column(name="id", nullable=false, unique=true, length=11)

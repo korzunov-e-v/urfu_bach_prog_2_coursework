@@ -12,6 +12,7 @@ import static bot.NotificationBot.Menu;
 
 // TODO
 class Keyboards {
+
     static InlineKeyboardMarkup getMainKeyboard() {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();

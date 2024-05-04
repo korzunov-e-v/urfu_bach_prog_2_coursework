@@ -20,6 +20,7 @@ import static bot.NotificationBot.GroupCreationStatus;
 import static bot.NotificationBot.GroupDeletionStatus;
 
 class Queries {
+
     private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     static User getUser(long userId) {

@@ -84,18 +84,17 @@ public class NotificationBot extends TelegramLongPollingBot {
     private void onCallback(Update update, State state) {
         long userId = update.getCallbackQuery().getFrom().getId();
 
-
         // TODO: for debug
         SendMessage message = new SendMessage();
         message.setChatId(userId);
-        message.setText("Ответ на callback#" + update.getCallbackQuery().getId() +
-                ", data:" + update.getCallbackQuery().getData());
+        message.setText(
+                "Ответ на callback#" + update.getCallbackQuery().getId() + ", data:"
+                        + update.getCallbackQuery().getData());
         try {
             execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
-
 
         String[] callbackData = update.getCallbackQuery().getData().split("\\+");
         String callbackCommand = callbackData[0];
@@ -331,7 +330,8 @@ public class NotificationBot extends TelegramLongPollingBot {
     private void sendReport(String productUrl, ProductCreationStatus status, long userId) {
         SendMessage message = new SendMessage();
         message.setChatId(Constants.ADMIN_ID);
-        message.setText("Report:\n\nUserID:" + userId + "\nstatus:" + status + "productUrl:" + productUrl);
+        message.setText(
+                "Report:\n\nUserID:" + userId + "\nstatus:" + status + "productUrl:" + productUrl);
         sendMessage(message);
     }
 

@@ -95,8 +95,10 @@ public class Messaging {
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
         switch (status) {
-            case SUCCESS -> message.setText("Группа успешно добавлена."); // todo: write prod message
-            case ALREADY_EXISTS -> message.setText("Группа не добавлена, группа с таким именем уже существует.");
+            case SUCCESS ->
+                    message.setText("Группа успешно добавлена."); // todo: write prod message
+            case ALREADY_EXISTS ->
+                    message.setText("Группа не добавлена, группа с таким именем уже существует.");
         }
         message.setReplyMarkup(kbm);
         return message;
@@ -111,11 +113,12 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageDeleteGroupSuccess(State state, GroupDeletionStatus status, String groupName) {
+    static SendMessage getMessageDeleteGroupSuccess(State state, GroupDeletionStatus status,
+            String groupName) {
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
-        switch (status) {
-            case SUCCESS -> message.setText("Группа '" + groupName + "' успешно удалена."); // todo: write prod message
+        switch (status) { // todo: write prod messages
+            case SUCCESS -> message.setText("Группа '" + groupName + "' успешно удалена.");
             case NOT_FOUND -> message.setText("Группа не удалена (не найдена)");
             case FORBIDDEN -> message.setText("Группа не удалена (нет доступа)");
         }
@@ -145,11 +148,14 @@ public class Messaging {
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
         switch (status) {
-            case SUCCESS -> message.setText("Продукт успешно добавлен."); // todo: write prod message
-            case UNEXPECTED_MARKET ->
-                    message.setText("Такой магазин не поддерживается. Администратор добавит возможность отслеживать цены в данном магазине в близжайшее время.");
+            case SUCCESS ->
+                    message.setText("Продукт успешно добавлен."); // todo: write prod message
+            case UNEXPECTED_MARKET -> message.setText(
+                    "Такой магазин не поддерживается. Администратор добавит возможность отслеживать"
+                            + " цены в данном магазине в близжайшее время.");
             case UNEXPECTED_URL -> message.setText("Данная ссылка ведёт не на страницу товара.");
-            case NO_PRODUCT -> message.setText("Данная страница не содержит товара. Возможно такого товара нет.");
+            case NO_PRODUCT -> message.setText(
+                    "Данная страница не содержит товара. Возможно такого товара нет.");
         }
         message.setReplyMarkup(kbm);
         return message;
