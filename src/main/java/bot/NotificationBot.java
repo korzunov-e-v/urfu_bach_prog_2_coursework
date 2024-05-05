@@ -2,6 +2,7 @@ package bot;
 
 import database.HibernateUtil;
 import database.models.Group;
+import database.models.Product;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -57,7 +58,6 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-    // TODO
     private void onText(Update update, State state) {
         String messageText = update.getMessage().getText();
         switch (state.currentMenu) {
@@ -111,8 +111,14 @@ public class NotificationBot extends TelegramLongPollingBot {
             case ALL_GROUPS -> processAllGroupsMenu(state);
             case ADD_GROUPS -> processAddGroupsMenu(state);
             case DELETE_GROUPS -> processDeleteGroupsMenu(state);
-            case DELETE_GROUP -> processDeleteGroup(state, callbackArg);
-            case RETRIEVE_GROUP -> processRetrieveGroup(state);
+            case DELETE_GROUP -> {
+                assert callbackArg != null;
+                processDeleteGroup(state, Long.parseLong(callbackArg));
+            }
+            case RETRIEVE_GROUP -> {
+                assert callbackArg != null;
+                processRetrieveGroup(state, Long.parseLong(callbackArg));
+            }
             case ALL_PRODUCTS -> processAllProducts(state);
             case ADD_PRODUCTS -> processAddProductsMenu(state);
             case DELETE_PRODUCTS -> processDeleteProductsMenu(state);
@@ -120,7 +126,7 @@ public class NotificationBot extends TelegramLongPollingBot {
             case RETRIEVE_PRODUCT -> processRetrieveProduct(state);
             case RESET_PRODUCTS -> processResetProductsMenu(state);
 //            case RESET_PRODUCT -> processResetProduct(state);
-//            case "toggle_notifications" -> // TODO
+//            case "toggle_notifications" -> // todo
         }
     }
 
@@ -225,10 +231,8 @@ public class NotificationBot extends TelegramLongPollingBot {
         sendMessage(message);
     }
 
-    private void processDeleteGroup(State state, String callbackArg) {
+    private void processDeleteGroup(State state, long groupId) {
         state.currentMenu = Menu.DELETE_GROUPS;
-
-        long groupId = Long.parseLong(callbackArg);
 
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
@@ -246,14 +250,23 @@ public class NotificationBot extends TelegramLongPollingBot {
         sendMessageCurrentState(state);
     }
 
-    private void processRetrieveGroup(State state) {
+    private void processRetrieveGroup(State state, long groupId) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
-        SendMessage message = getMessageRetrieveGroup(state);
+        state.groupId = groupId;
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        Group group = session.get(Group.class, groupId);
+        List<Product> products = group.getProducts().stream().toList();
+        transaction.commit();
+
+        SendMessage message = getMessageRetrieveGroup(state, group, products);
         sendMessage(message);
     }
 
     private void processAllProducts(State state) {
-        state.currentMenu = Menu.MAIN;
+        state.currentMenu = Menu.ALL_PRODUCTS;
+        state.groupId = null;
         SendMessage message = getMessageAllProducts(state);
         sendMessage(message);
     }
@@ -265,8 +278,6 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void processAddProduct(State state, String productUrl) {
-        state.currentMenu = Menu.RETRIEVE_GROUP;
-
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
         ProductCreationStatus status = addProduct(state.userId, state.groupId, productUrl);
@@ -318,7 +329,7 @@ public class NotificationBot extends TelegramLongPollingBot {
             case ADD_GROUPS -> processAddGroupsMenu(state);
             case DELETE_GROUPS -> processDeleteGroupsMenu(state);
             case ADD_PRODUCTS -> processAddProductsMenu(state);
-            case RETRIEVE_GROUP -> processRetrieveGroup(state);
+            case RETRIEVE_GROUP -> processRetrieveGroup(state, state.groupId);
             case SETTINGS -> processSettingsMenu(state);
             case ALL_PRODUCTS -> processAllProducts(state);
             case RESET_PRODUCTS -> processResetProductsMenu(state);
@@ -344,7 +355,7 @@ public class NotificationBot extends TelegramLongPollingBot {
 
         long userId;
         Menu currentMenu;
-        Integer groupId = null;
+        Long groupId = null;
         int page;
 
 

@@ -1,6 +1,7 @@
 package bot;
 
 import database.models.Group;
+import database.models.Product;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
@@ -59,17 +60,20 @@ public class Messaging {
     }
 
     static SendMessage getMessageAllGroups(State state, List<Group> groups) {
-        InlineKeyboardMarkup kbm = Keyboards.getAllGroupsKeyboard(state);
+        InlineKeyboardMarkup kbm = Keyboards.getAllGroupsKeyboard(state, groups);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
 
         StringBuilder sb = new StringBuilder("Привет. Это группы. \n\n");
         for (Group group : groups) {
-            sb.append(group.toString());
-            sb.append("\n\n");
+            sb.append(String.format("- %s - от %d до %d руб.\n", group.getName(), 0, 0)); // todo
+            sb.append(String.format("  +%d руб за месяц\n", 0));  // todo
+            sb.append(String.format("  +%d руб с момента добавления\n", 0));  // todo
+            sb.append("\n");
         }
 
         message.setText(sb.toString()); // todo: write prod message
+        message.enableMarkdown(true);
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -125,17 +129,32 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageRetrieveGroup(State state) {
+    static SendMessage getMessageRetrieveGroup(State state, Group group, List<Product> products) {
         InlineKeyboardMarkup kbm = Keyboards.getRetrieveGroupKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
-        message.setText("Привет. Это меню информации о группе."); // todo: write prod message
+
+
+        StringBuilder sb = new StringBuilder(
+                String.format("Привет. Это меню информации о группе '%s' \n\n", group.getName()));
+        if (products.size() == 0) {
+            sb.append("Пока что тут нет товаров.");
+        } else {
+            for (Product product : products) {
+                sb.append(String.format(
+                        "- %s - %d руб (изм от %d до %d руб).\n", product.getName(), 0, 0, 0)); // todo
+                sb.append("\n");
+            }
+        }
+
+        message.setText(sb.toString()); // todo: write prod message
+        message.enableMarkdown(true);
         message.setReplyMarkup(kbm);
         return message;
     }
 
     static SendMessage getMessageAddProducts(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getAddProductsKeyboard(state);
+        InlineKeyboardMarkup kbm = Keyboards.getCancelCreateProductKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userId);
         message.setText("Привет. Это меню добавления товара."); // todo: write prod message
