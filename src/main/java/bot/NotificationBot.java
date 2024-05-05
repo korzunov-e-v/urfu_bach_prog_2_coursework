@@ -7,6 +7,7 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -31,23 +32,23 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        long userId;
+        long userTgId;
         String username;
         if (update.getMessage() != null) {
-            userId = update.getMessage().getFrom().getId();
+            userTgId = update.getMessage().getFrom().getId();
             username = update.getMessage().getFrom().getUserName();
         } else {
-            userId = update.getCallbackQuery().getFrom().getId();
+            userTgId = update.getCallbackQuery().getFrom().getId();
             username = update.getCallbackQuery().getFrom().getUserName();
         }
 
         Session session = sessionFactory.getCurrentSession();
         session.getTransaction().begin();
-        getOrCreateUser(userId, username);
+        getOrCreateUser(userTgId, username);
         session.getTransaction().commit();
 
-        State state = stateMap.getOrDefault(userId, new State(userId, Menu.MAIN));
-        stateMap.put(userId, state);
+        State state = stateMap.getOrDefault(userTgId, new State(userTgId, Menu.MAIN));
+        stateMap.put(userTgId, state);
 
         if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
             onCommand(update, state);
@@ -82,11 +83,11 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     // TODO
     private void onCallback(Update update, State state) {
-        long userId = update.getCallbackQuery().getFrom().getId();
+        long userTgId = update.getCallbackQuery().getFrom().getId();
 
         // TODO: for debug
         SendMessage message = new SendMessage();
-        message.setChatId(userId);
+        message.setChatId(userTgId);
         message.setText(
                 "Ответ на callback#" + update.getCallbackQuery().getId() + ", data:"
                         + update.getCallbackQuery().getData());
@@ -128,9 +129,21 @@ public class NotificationBot extends TelegramLongPollingBot {
 //            case RESET_PRODUCT -> processResetProduct(state);
 //            case "toggle_notifications" -> // todo
         }
+        AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery();
+        answerCallbackQuery.setCallbackQueryId(update.getCallbackQuery().getId());
+        answerCallbackQuery.setShowAlert(false);
+        sendAnswerCallback(answerCallbackQuery);
     }
 
     private void sendMessage(SendMessage message) {
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendAnswerCallback(AnswerCallbackQuery message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -173,7 +186,7 @@ public class NotificationBot extends TelegramLongPollingBot {
 
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
-        List<Group> groups = getGroups(state.userId);
+        List<Group> groups = getGroups(state.userTgId);
         transaction.commit();
 
         SendMessage message;
@@ -190,7 +203,7 @@ public class NotificationBot extends TelegramLongPollingBot {
 
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
-        List<Group> groups = getGroups(state.userId);
+        List<Group> groups = getGroups(state.userTgId);
         transaction.commit();
 
         SendMessage message = getMessageAddGroups(state, groups);
@@ -202,7 +215,7 @@ public class NotificationBot extends TelegramLongPollingBot {
 
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
-        GroupCreationStatus status = addGroup(state.userId, groupName);
+        GroupCreationStatus status = addGroup(state.userTgId, groupName);
         transaction.commit();
 
         SendMessage message;
@@ -219,7 +232,7 @@ public class NotificationBot extends TelegramLongPollingBot {
 
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
-        List<Group> groups = getGroups(state.userId);
+        List<Group> groups = getGroups(state.userTgId);
         transaction.commit();
 
         SendMessage message;
@@ -236,16 +249,19 @@ public class NotificationBot extends TelegramLongPollingBot {
 
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
-        String groupName = session.get(Group.class, groupId).getName();
-        GroupDeletionStatus status = deleteGroup(state.userId, groupId);
+        SendMessage message;
+
+        Group group = session.get(Group.class, groupId);
+        GroupDeletionStatus status = deleteGroup(state.userTgId, groupId);
         transaction.commit();
 
-        SendMessage message;
         if (transaction.getStatus() == COMMITTED) {
+            String groupName = group.getName();
             message = getMessageDeleteGroupSuccess(state, status, groupName);
         } else {
             message = getMessageError(state);
         }
+
         sendMessage(message);
         sendMessageCurrentState(state);
     }
@@ -272,7 +288,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void processAddProductsMenu(State state) {
-        state.currentMenu = Menu.RETRIEVE_GROUP;
+        state.currentMenu = Menu.ADD_PRODUCTS;
         SendMessage message = getMessageAddProducts(state);
         sendMessage(message);
     }
@@ -280,7 +296,7 @@ public class NotificationBot extends TelegramLongPollingBot {
     private void processAddProduct(State state, String productUrl) {
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
-        ProductCreationStatus status = addProduct(state.userId, state.groupId, productUrl);
+        ProductCreationStatus status = addProduct(state.userTgId, state.groupId, productUrl);
         transaction.commit();
 
         SendMessage message;
@@ -338,11 +354,11 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     // TODO
-    private void sendReport(String productUrl, ProductCreationStatus status, long userId) {
+    private void sendReport(String productUrl, ProductCreationStatus status, long userTgId) {
         SendMessage message = new SendMessage();
         message.setChatId(Constants.ADMIN_ID);
         message.setText(
-                "Report:\n\nUserID:" + userId + "\nstatus:" + status + "productUrl:" + productUrl);
+                "Report:\n\nUserID:" + userTgId + "\nstatus:" + status + "productUrl:" + productUrl);
         sendMessage(message);
     }
 
@@ -353,26 +369,26 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     static class State {
 
-        long userId;
+        long userTgId;
         Menu currentMenu;
         Long groupId = null;
         int page;
 
 
-        public State(long userId) {
-            this.userId = userId;
+        public State(long userTgId) {
+            this.userTgId = userTgId;
             this.currentMenu = Menu.MAIN;
             this.page = 0;
         }
 
-        public State(long userId, Menu currentMenu) {
-            this.userId = userId;
+        public State(long userTgId, Menu currentMenu) {
+            this.userTgId = userTgId;
             this.currentMenu = currentMenu;
             this.page = 0;
         }
 
-        public State(long userId, Menu currentMenu, int page) {
-            this.userId = userId;
+        public State(long userTgId, Menu currentMenu, int page) {
+            this.userTgId = userTgId;
             this.currentMenu = currentMenu;
             this.page = page;
         }
@@ -384,6 +400,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         UNEXPECTED_MARKET,
         UNEXPECTED_URL,
         NO_PRODUCT,
+        FORBIDDEN,
     }
 
     enum GroupCreationStatus {

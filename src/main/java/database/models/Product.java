@@ -3,6 +3,8 @@ package database.models;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 
 @SuppressWarnings("unused")
@@ -17,9 +19,10 @@ public class Product {
     @Column(name="name", nullable=false)
     private String name;
 
-    @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="marketplace_id")
-    private Marketplace marketplace;
+    @Enumerated
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "marketplace")
+    private MarketplaceEnum marketplace;
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="group_id")
@@ -29,6 +32,9 @@ public class Product {
     @JoinColumn(name="owner_id", nullable=false)
     private User owner;
 
+    @Column(name="product_url")
+    private String productUrl;
+
     @Column(name="created_at")
     private Instant createdAt;
 
@@ -37,7 +43,7 @@ public class Product {
         createdAt = Instant.now();
     }
 
-    public Product(String name, Marketplace marketplace, Group groupId) {
+    public Product(String name, MarketplaceEnum marketplace, Group groupId) {
         this.name = name;
         this.marketplace = marketplace;
         this.groupId = groupId;
@@ -54,12 +60,16 @@ public class Product {
         return name;
     }
 
-    public Marketplace getMarketplace() {
+    public MarketplaceEnum getMarketplace() {
         return marketplace;
     }
 
     public Group getGroupId() {
         return groupId;
+    }
+
+    public String getProductUrl() {
+        return productUrl;
     }
 
     public Instant getCreatedAt() {
@@ -74,5 +84,10 @@ public class Product {
                 ", marketplace=" + marketplace +
                 ", groupId=" + groupId +
                 '}';
+    }
+
+    public enum MarketplaceEnum {
+        OZON,
+        WILDBERRIES
     }
 }

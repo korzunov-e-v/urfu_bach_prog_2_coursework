@@ -1,7 +1,6 @@
 package database;
 
 import database.models.Group;
-import database.models.Marketplace;
 import database.models.Product;
 import database.models.User;
 import org.hibernate.boot.Metadata;
@@ -28,7 +27,6 @@ public class HibernateUtil {
         try {
             Metadata metadata = new MetadataSources(registry)
                     .addAnnotatedClass(Group.class)
-                    .addAnnotatedClass(Marketplace.class)
                     .addAnnotatedClass(Product.class)
                     .addAnnotatedClass(User.class)
                     .buildMetadata();

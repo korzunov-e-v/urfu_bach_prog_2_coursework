@@ -17,7 +17,7 @@ public class Messaging {
     static SendMessage getMessageStart(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это стартовое сообщение"); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -26,7 +26,7 @@ public class Messaging {
     static SendMessage getMessageMainMenu(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Это главное меню"); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -35,7 +35,7 @@ public class Messaging {
     static SendMessage getMessageSettings(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getSettingsKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Это настройки"); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -44,7 +44,7 @@ public class Messaging {
     static SendMessage getMessageHelp(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getCancelKeyboard();
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это справка."); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -53,7 +53,7 @@ public class Messaging {
     static SendMessage getMessageNotKnownCommand(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Бот такой команды не знает =(.");
         message.setReplyMarkup(kbm);
         return message;
@@ -62,7 +62,7 @@ public class Messaging {
     static SendMessage getMessageAllGroups(State state, List<Group> groups) {
         InlineKeyboardMarkup kbm = Keyboards.getAllGroupsKeyboard(state, groups);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
 
         StringBuilder sb = new StringBuilder("Привет. Это группы. \n\n");
         for (Group group : groups) {
@@ -81,7 +81,7 @@ public class Messaging {
     static SendMessage getMessageAddGroups(State state, List<Group> groups) {
         InlineKeyboardMarkup kbm = Keyboards.getAddGroupKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
 
         StringBuilder sb = new StringBuilder("Привет. Это меню добавления группы. \n\n");
         for (Group group : groups) {
@@ -97,7 +97,7 @@ public class Messaging {
     static SendMessage getMessageAddGroupSuccess(State state, GroupCreationStatus status) {
         InlineKeyboardMarkup kbm = bot.Keyboards.getCancelCreateGroupKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         switch (status) {
             case SUCCESS ->
                     message.setText("Группа успешно добавлена."); // todo: write prod message
@@ -111,7 +111,7 @@ public class Messaging {
     static SendMessage getMessageDeleteGroups(State state, List<Group> groups) {
         InlineKeyboardMarkup kbm = Keyboards.getDeleteGroupsKeyboard(state, groups);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это меню удаления группы."); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -120,7 +120,7 @@ public class Messaging {
     static SendMessage getMessageDeleteGroupSuccess(State state, GroupDeletionStatus status,
             String groupName) {
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         switch (status) { // todo: write prod messages
             case SUCCESS -> message.setText("Группа '" + groupName + "' успешно удалена.");
             case NOT_FOUND -> message.setText("Группа не удалена (не найдена)");
@@ -132,7 +132,7 @@ public class Messaging {
     static SendMessage getMessageRetrieveGroup(State state, Group group, List<Product> products) {
         InlineKeyboardMarkup kbm = Keyboards.getRetrieveGroupKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
 
 
         StringBuilder sb = new StringBuilder(
@@ -156,7 +156,7 @@ public class Messaging {
     static SendMessage getMessageAddProducts(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getCancelCreateProductKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это меню добавления товара."); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -165,7 +165,7 @@ public class Messaging {
     static SendMessage getMessageAddProductSuccess(State state, ProductCreationStatus status) {
         InlineKeyboardMarkup kbm = bot.Keyboards.getCancelCreateProductKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         switch (status) {
             case SUCCESS ->
                     message.setText("Продукт успешно добавлен."); // todo: write prod message
@@ -175,6 +175,8 @@ public class Messaging {
             case UNEXPECTED_URL -> message.setText("Данная ссылка ведёт не на страницу товара.");
             case NO_PRODUCT -> message.setText(
                     "Данная страница не содержит товара. Возможно такого товара нет.");
+            case FAILED -> message.setText("Произошла ошибка.");
+            case FORBIDDEN -> message.setText("Нет прав для добавления в эту группу.");
         }
         message.setReplyMarkup(kbm);
         return message;
@@ -183,7 +185,7 @@ public class Messaging {
     static SendMessage getMessageDeleteProducts(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getDeleteProductsKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это меню удаления товара."); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -192,7 +194,7 @@ public class Messaging {
     static SendMessage getMessageRetrieveProduct(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getRetrieveProductsKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это меню информации о товаре."); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -201,7 +203,7 @@ public class Messaging {
     static SendMessage getMessageResetProduct(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getResetProductsKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это меню сброса статистики о товаре."); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -210,7 +212,7 @@ public class Messaging {
     static SendMessage getMessageAllProducts(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getAllProductsKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Привет. Это меню список всех товаров."); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
@@ -219,18 +221,18 @@ public class Messaging {
     static SendMessage getMessageAddProductUnexpected(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getAddProductsKeyboard(state);
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Такого сообщения не ожидалось.");
         message.setReplyMarkup(kbm);
         return message;
     }
 
     static SendMessage getMessageError(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
+//        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         SendMessage message = new SendMessage();
-        message.setChatId(state.userId);
+        message.setChatId(state.userTgId);
         message.setText("Произошла ошибка");
-        message.setReplyMarkup(kbm);
+//        message.setReplyMarkup(kbm);
         return message;
     }
 }
