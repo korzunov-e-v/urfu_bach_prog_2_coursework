@@ -15,6 +15,7 @@ import marketplace.exceptions.MarketplaceException;
 import marketplace.exceptions.NoProductException;
 import marketplace.exceptions.UnexpectedMarketplaceException;
 import marketplace.exceptions.UnexpectedUrlException;
+import mongo.MongoUtil;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
@@ -141,9 +142,10 @@ class Queries {
             return ProductCreationStatus.FAILED;
         }
 
-        session.persist(new Product(productName, marketplaceType, group, owner, productUrl));
+        Product newProduct = new Product(productName, marketplaceType, group, owner, productUrl);
+        session.persist(newProduct);
 
-        // todo: write to mongo
+        MongoUtil.addRecord(newProduct.getId(), "available", price);
         return ProductCreationStatus.SUCCESS;
     }
 
