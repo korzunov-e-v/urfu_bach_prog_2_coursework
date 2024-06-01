@@ -2,6 +2,7 @@ package bot;
 
 import database.models.Group;
 import database.models.Product;
+import mongo.MongoUtil;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
@@ -141,8 +142,13 @@ public class Messaging {
             sb.append("Пока что тут нет товаров.");
         } else {
             for (Product product : products) {
+                long productId = product.getId();
+                double currentPrice = MongoUtil.getCurrentPrice(productId);
+                int minPrice = (int) MongoUtil.getMinPrice(productId);
+                int maxPrice = (int) MongoUtil.getMaxPrice(productId);
+
                 sb.append(String.format(
-                        "- %s - %d руб (изм от %d до %d руб).\n", product.getName(), 0, 0, 0)); // todo
+                        "- %s - %.2f руб (изм от %d до %d руб).\n", product.getName(), currentPrice, minPrice, maxPrice));
                 sb.append("\n");
             }
         }
