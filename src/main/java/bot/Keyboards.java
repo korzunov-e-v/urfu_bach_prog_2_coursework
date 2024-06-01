@@ -1,6 +1,7 @@
 package bot;
 
 import database.models.Group;
+import database.models.Product;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
@@ -188,10 +189,27 @@ class Keyboards {
         return markupInline;
     }
 
-    static InlineKeyboardMarkup getDeleteProductsKeyboard(State state) {
+    static InlineKeyboardMarkup getDeleteProductsKeyboard(State state, List<Product> products) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        // TODO
+
+        // TODO: pagination
+        for (Product product : products) {
+            List<InlineKeyboardButton> rowInlineProduct = new ArrayList<>();
+            InlineKeyboardButton buttonProduct = new InlineKeyboardButton();
+            buttonProduct.setText(product.getName());
+            buttonProduct.setCallbackData(Menu.DELETE_PRODUCT.toString() + "+" + product.getId());
+            rowInlineProduct.add(buttonProduct);
+            rowsInline.add(rowInlineProduct);
+        }
+
+        List<InlineKeyboardButton> rowInlineCancel = new ArrayList<>();
+        InlineKeyboardButton buttonCancel = new InlineKeyboardButton();
+        buttonCancel.setText("Завершить");
+        buttonCancel.setCallbackData(Menu.RETRIEVE_GROUP.toString() + "+" + state.groupId);
+        rowInlineCancel.add(buttonCancel);
+        rowsInline.add(rowInlineCancel);
+
         markupInline.setKeyboard(rowsInline);
         return markupInline;
     }

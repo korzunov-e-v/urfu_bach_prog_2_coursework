@@ -23,7 +23,7 @@ import java.util.List;
 
 import static bot.NotificationBot.ProductCreationStatus;
 import static bot.NotificationBot.GroupCreationStatus;
-import static bot.NotificationBot.GroupDeletionStatus;
+import static bot.NotificationBot.DeletionStatus;
 
 class Queries {
 
@@ -149,6 +149,22 @@ class Queries {
         return ProductCreationStatus.SUCCESS;
     }
 
+    static DeletionStatus deleteProduct(long tgId, long productId) {
+        Session session = sessionFactory.getCurrentSession();
+
+        Product product = session.get(Product.class, productId);
+
+        if (product != null) {
+            if (product.getGroupId().getOwner().getTgId() != tgId) {
+                return DeletionStatus.FORBIDDEN;
+            }
+            session.remove(product);
+            return DeletionStatus.SUCCESS;
+        } else {
+            return DeletionStatus.NOT_FOUND;
+        }
+    }
+
     static GroupCreationStatus addGroup(long tgId, String groupName) {
         Session session = sessionFactory.getCurrentSession();
 
@@ -163,19 +179,19 @@ class Queries {
         return GroupCreationStatus.SUCCESS;
     }
 
-    static GroupDeletionStatus deleteGroup(long tgId, long groupId) {
+    static DeletionStatus deleteGroup(long tgId, long groupId) {
         Session session = sessionFactory.getCurrentSession();
 
         Group group = session.get(Group.class, groupId);
 
         if (group != null) {
             if (group.getOwner().getTgId() != tgId) {
-                return GroupDeletionStatus.FORBIDDEN;
+                return DeletionStatus.FORBIDDEN;
             }
             session.remove(group);
-            return GroupDeletionStatus.SUCCESS;
+            return DeletionStatus.SUCCESS;
         } else {
-            return GroupDeletionStatus.NOT_FOUND;
+            return DeletionStatus.NOT_FOUND;
         }
     }
 }

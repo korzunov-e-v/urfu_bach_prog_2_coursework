@@ -9,6 +9,8 @@ import org.hibernate.Transaction;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -123,7 +125,10 @@ public class NotificationBot extends TelegramLongPollingBot {
             case ALL_PRODUCTS -> processAllProducts(state);
             case ADD_PRODUCTS -> processAddProductsMenu(state);
             case DELETE_PRODUCTS -> processDeleteProductsMenu(state);
-//            case DELETE_PRODUCT -> processDeleteProduct(state);
+            case DELETE_PRODUCT -> {
+                assert callbackArg != null;
+                processDeleteProduct(state, Long.parseLong(callbackArg));
+            }
             case RETRIEVE_PRODUCT -> processRetrieveProduct(state);
             case RESET_PRODUCTS -> processResetProductsMenu(state);
 //            case RESET_PRODUCT -> processResetProduct(state);
@@ -135,9 +140,10 @@ public class NotificationBot extends TelegramLongPollingBot {
         sendAnswerCallback(answerCallbackQuery);
     }
 
-    private void sendMessage(SendMessage message) {
+    private void sendMessage(SendMessage message, State state) {
         try {
-            execute(message);
+            Message mes = execute(message);
+            state.lastMessageId = mes.getMessageId();
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
@@ -154,31 +160,31 @@ public class NotificationBot extends TelegramLongPollingBot {
     private void processStartMenu(State state) {
         state.currentMenu = Menu.MAIN;
         SendMessage message = getMessageStart(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processHelpMenu(State state) {
         state.currentMenu = Menu.HELP;
         SendMessage message = getMessageHelp(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processSettingsMenu(State state) {
         state.currentMenu = Menu.SETTINGS;
         SendMessage message = getMessageSettings(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processNotKnownCommand(State state) {
         state.currentMenu = Menu.MAIN;
         SendMessage message = getMessageNotKnownCommand(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processMainMenu(State state) {
         state.currentMenu = Menu.MAIN;
         SendMessage message = getMessageMainMenu(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processAllGroupsMenu(State state) {
@@ -195,7 +201,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         } else {
             message = getMessageError(state);
         }
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processAddGroupsMenu(State state) {
@@ -207,7 +213,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         transaction.commit();
 
         SendMessage message = getMessageAddGroups(state, groups);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processAddGroup(State state, String groupName) {
@@ -224,7 +230,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         } else {
             message = getMessageError(state);
         }
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processDeleteGroupsMenu(State state) {
@@ -241,7 +247,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         } else {
             message = getMessageError(state);
         }
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processDeleteGroup(State state, long groupId) {
@@ -252,7 +258,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         SendMessage message;
 
         Group group = session.get(Group.class, groupId);
-        GroupDeletionStatus status = deleteGroup(state.userTgId, groupId);
+        DeletionStatus status = deleteGroup(state.userTgId, groupId);
         transaction.commit();
 
         if (transaction.getStatus() == COMMITTED) {
@@ -262,7 +268,7 @@ public class NotificationBot extends TelegramLongPollingBot {
             message = getMessageError(state);
         }
 
-        sendMessage(message);
+        sendMessage(message, state);
         sendMessageCurrentState(state);
     }
 
@@ -277,20 +283,20 @@ public class NotificationBot extends TelegramLongPollingBot {
         transaction.commit();
 
         SendMessage message = getMessageRetrieveGroup(state, group, products);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processAllProducts(State state) {
         state.currentMenu = Menu.ALL_PRODUCTS;
         state.groupId = null;
         SendMessage message = getMessageAllProducts(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processAddProductsMenu(State state) {
         state.currentMenu = Menu.ADD_PRODUCTS;
         SendMessage message = getMessageAddProducts(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processAddProduct(State state, String productUrl) {
@@ -305,36 +311,72 @@ public class NotificationBot extends TelegramLongPollingBot {
         } else {
             message = getMessageError(state);
         }
-        sendMessage(message);
+        sendMessage(message, state);
+    }
+
+    private void processDeleteProduct(State state, long productId) {
+        state.currentMenu = Menu.DELETE_PRODUCTS;
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction1 = session.beginTransaction();
+        DeletionStatus status = deleteProduct(state.userTgId, productId);
+        transaction1.commit();
+
+        session = sessionFactory.getCurrentSession();
+        Transaction transaction2 = session.beginTransaction();
+        Group group = session.get(Group.class, state.groupId);
+        List<Product> products = group.getProducts().stream().toList();
+        transaction2.commit();
+
+        // todo: edit message
+//        EditMessageText.builder().messageId(state.lastMessageId).text()
+
+        SendMessage message;
+        if (transaction1.getStatus() == COMMITTED) {
+            message = getMessageDeleteProductSuccess(state, status);
+        } else {
+            message = getMessageError(state);
+        }
+
+        sendMessage(message, state);
+        sendMessageCurrentState(state);
     }
 
     private void processDeleteProductsMenu(State state) {
-        state.currentMenu = Menu.RETRIEVE_GROUP;
-        SendMessage message = getMessageDeleteProducts(state);
-        sendMessage(message);
+        state.currentMenu = Menu.DELETE_PRODUCTS;
+
+        Session session = sessionFactory.getCurrentSession();
+
+        Transaction transaction = session.beginTransaction();
+        Group group = session.get(Group.class, state.groupId);
+        List<Product> products = group.getProducts().stream().toList();
+        transaction.commit();
+
+        SendMessage message = getMessageDeleteProducts(state, products);
+        sendMessage(message, state);
     }
 
     private void processRetrieveProduct(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageRetrieveProduct(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void processResetProductsMenu(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageResetProduct(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void sendMessageAddProductSuccess(State state, ProductCreationStatus status) {
         SendMessage message = getMessageAddProductSuccess(state, status);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void sendMessageAddProductUnexpected(State state) {
         state.currentMenu = Menu.RETRIEVE_GROUP;
         SendMessage message = getMessageAddProductUnexpected(state);
-        sendMessage(message);
+        sendMessage(message, state);
     }
 
     private void sendMessageCurrentState(State state) {
@@ -353,14 +395,14 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-    // TODO
-    private void sendReport(String productUrl, ProductCreationStatus status, long userTgId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(Constants.ADMIN_ID);
-        message.setText(
-                "Report:\n\nUserID:" + userTgId + "\nstatus:" + status + "productUrl:" + productUrl);
-        sendMessage(message);
-    }
+//    // TODO
+//    private void sendReport(String productUrl, ProductCreationStatus status, long userTgId) {
+//        SendMessage message = new SendMessage();
+//        message.setChatId(Constants.ADMIN_ID);
+//        message.setText(
+//                "Report:\n\nUserID:" + userTgId + "\nstatus:" + status + "productUrl:" + productUrl);
+//        sendMessage(message, state);
+//    }
 
     @Override
     public String getBotUsername() {
@@ -373,6 +415,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         Menu currentMenu;
         Long groupId = null;
         int page;
+        Integer lastMessageId = null;
 
 
         public State(long userTgId) {
@@ -408,7 +451,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         ALREADY_EXISTS,
     }
 
-    enum GroupDeletionStatus {
+    enum DeletionStatus {
         SUCCESS,
         NOT_FOUND,
         FORBIDDEN

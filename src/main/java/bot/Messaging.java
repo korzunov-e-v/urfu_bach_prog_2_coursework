@@ -9,7 +9,7 @@ import java.util.List;
 
 import static bot.NotificationBot.ProductCreationStatus;
 import static bot.NotificationBot.GroupCreationStatus;
-import static bot.NotificationBot.GroupDeletionStatus;
+import static bot.NotificationBot.DeletionStatus;
 import static bot.NotificationBot.State;
 
 public class Messaging {
@@ -117,7 +117,7 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageDeleteGroupSuccess(State state, GroupDeletionStatus status,
+    static SendMessage getMessageDeleteGroupSuccess(State state, DeletionStatus status,
             String groupName) {
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
@@ -182,12 +182,23 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageDeleteProducts(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getDeleteProductsKeyboard(state);
+    static SendMessage getMessageDeleteProducts(State state, List<Product> products) {
+        InlineKeyboardMarkup kbm = Keyboards.getDeleteProductsKeyboard(state, products);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
         message.setText("Привет. Это меню удаления товара."); // todo: write prod message
         message.setReplyMarkup(kbm);
+        return message;
+    }
+
+    static SendMessage getMessageDeleteProductSuccess(State state, DeletionStatus status) {
+        SendMessage message = new SendMessage();
+        message.setChatId(state.userTgId);
+        switch (status) { // todo: write prod messages
+            case SUCCESS -> message.setText("Продукт успешно удалён.");
+            case NOT_FOUND -> message.setText("Продукт не удалён (не найдена)");
+            case FORBIDDEN -> message.setText("Продукт не удалён (нет доступа)");
+        }
         return message;
     }
 
