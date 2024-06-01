@@ -11,6 +11,10 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import marketplace.Marketplace;
+import marketplace.exceptions.MarketplaceException;
+import marketplace.exceptions.NoProductException;
+import marketplace.exceptions.UnexpectedMarketplaceException;
+import marketplace.exceptions.UnexpectedUrlException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
@@ -110,39 +114,34 @@ class Queries {
     static ProductCreationStatus addProduct(long tgId, long groupId, String productUrl) {
         Session session = sessionFactory.getCurrentSession();
 
-        Marketplace marketplace = Marketplace.getInstance(productUrl);
-        if (marketplace == null) {
-            return ProductCreationStatus.UNEXPECTED_MARKET;
-        }
-        Marketplace.ValidationStatus validationStatus = marketplace.validateProductUrl(productUrl);
-        switch (validationStatus) {
-            case ERROR -> {
-                return ProductCreationStatus.FAILED;
-            }
-            case UNEXPECTED_URL -> {
-                return ProductCreationStatus.UNEXPECTED_URL;
-            }
-            case NO_PRODUCT -> {
-                return ProductCreationStatus.NO_PRODUCT;
-            }
-            case OK -> {}
-        }
-
-        // todo: parse (get name, price)
-
-        String productName = "Название продукта";   // todo
-        MarketplaceEnum marketplaceType = marketplace.getMarketplaceType();
         Group group = getGroupById(groupId);
-
         if (group == null) {
             return ProductCreationStatus.FAILED;
         }
-
-        if (group.getOwner().getTgId() != tgId) {
+        User owner = group.getOwner();
+        if (owner.getTgId() != tgId) {
             return ProductCreationStatus.FORBIDDEN;
         }
 
-        session.persist(new Product(productName, marketplaceType, group));
+        double price;
+        String productName;
+        MarketplaceEnum marketplaceType;
+        try {
+            Marketplace marketplace = Marketplace.getInstance(productUrl);
+            price = marketplace.getPrice();
+            productName = marketplace.getProductName();
+            marketplaceType = marketplace.getMarketplaceType();
+        } catch (UnexpectedMarketplaceException e) {
+            return ProductCreationStatus.UNEXPECTED_MARKET;
+        } catch (NoProductException e) {
+            return ProductCreationStatus.NO_PRODUCT;
+        } catch (UnexpectedUrlException e) {
+            return ProductCreationStatus.UNEXPECTED_URL;
+        } catch (MarketplaceException e) {
+            return ProductCreationStatus.FAILED;
+        }
+
+        session.persist(new Product(productName, marketplaceType, group, owner, productUrl));
 
         // todo: write to mongo
         return ProductCreationStatus.SUCCESS;
