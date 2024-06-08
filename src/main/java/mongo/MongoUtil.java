@@ -68,12 +68,17 @@ public class MongoUtil {
         return collection.insertOne(document);
     }
 
-    public static double getCurrentPrice(long productId) {
+    public static Double getCurrentPrice(long productId) {
         MongoCollection<Document> collection = getCollection();
 
-        return Objects.requireNonNull(collection.find(Filters.eq("product_id", productId))
-                .sort(new Document("creation_at", -1))
-                .first()).getDouble("price");
+        Document a = collection.find(Filters.eq("product_id", productId))
+                .sort(new Document("creation_at", -1)).first();
+
+        if (a != null){
+            return a.getDouble("price");
+        } else {
+            return null;
+        }
     }
 
     public static double getMinPrice(long productId) {

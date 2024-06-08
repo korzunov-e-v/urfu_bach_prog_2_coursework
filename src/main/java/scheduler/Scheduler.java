@@ -1,5 +1,6 @@
 package scheduler;
 
+import bot.NotificationBot;
 import database.HibernateUtil;
 import database.models.Product;
 import jakarta.persistence.TypedQuery;
@@ -35,8 +36,10 @@ public class Scheduler {
     private static class Runner implements Runnable {
         @Override
         public void run() {
+            Session session = sessionFactory.openSession();
+            List<Product> products = getAllProducts(session);
+
             ExecutorService executor = Executors.newFixedThreadPool(10);
-            List<Product> products = getAllProducts();
 
             List<Callable<String>> callableList = new ArrayList<>();
             for (Product product : products) {
@@ -44,6 +47,11 @@ public class Scheduler {
                     try {
                         Marketplace marketplace = Marketplace.getInstance(product.getProductUrl());
                         double price = marketplace.getPrice();
+                        Double lastPrice = MongoUtil.getCurrentPrice(product.getId());
+                        if (lastPrice != null && price != lastPrice) {
+                            NotificationBot nb = new NotificationBot(System.getenv("BOT_TOKEN"));
+                            nb.sendNotification(product.getOwner().getTgId(), product.getName(), lastPrice, price);
+                        }
                         MongoUtil.addRecord(product.getId(), "available", price);
                     } catch (MarketplaceException e) {
                         System.out.println("Error updating price, productId=" + product.getId());
@@ -58,20 +66,18 @@ public class Scheduler {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            session.close();
         }
 
     }
 
-    static List<Product> getAllProducts() {
-        Session session = sessionFactory.openSession();
-
+    static List<Product> getAllProducts(Session session) {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Product> criteriaQuery = builder.createQuery(Product.class);
         Root<Product> root = criteriaQuery.from(Product.class);
         criteriaQuery.select(root);
         TypedQuery<Product> query = session.createQuery(criteriaQuery);
         List<Product> result = query.getResultList().stream().toList();
-        session.close();
         return result;
     }
 }

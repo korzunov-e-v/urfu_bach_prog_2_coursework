@@ -70,6 +70,10 @@ public class Product {
         return groupId;
     }
 
+    public User getOwner() {
+        return owner;
+    }
+
     public String getProductUrl() {
         return productUrl;
     }

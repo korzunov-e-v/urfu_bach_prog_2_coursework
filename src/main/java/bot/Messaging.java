@@ -143,7 +143,7 @@ public class Messaging {
         } else {
             for (Product product : products) {
                 long productId = product.getId();
-                double currentPrice = MongoUtil.getCurrentPrice(productId);
+                Double currentPrice = MongoUtil.getCurrentPrice(productId);
                 int minPrice = (int) MongoUtil.getMinPrice(productId);
                 int maxPrice = (int) MongoUtil.getMaxPrice(productId);
 
@@ -250,6 +250,14 @@ public class Messaging {
         message.setChatId(state.userTgId);
         message.setText("Произошла ошибка");
 //        message.setReplyMarkup(kbm);
+        return message;
+    }
+
+    static SendMessage getNotificationMessage(long tgId, String productName, double prevPrice, double newPrice) {
+        SendMessage message = new SendMessage();
+        message.setChatId(tgId);
+        message.setText(String.format(
+                "Обновлена цена товара.\n\n%s\n\nстарая цена: %.2f руб\n\nновая цена: %.2f руб.", productName, prevPrice, newPrice));
         return message;
     }
 }

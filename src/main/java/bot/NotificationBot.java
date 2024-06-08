@@ -140,10 +140,23 @@ public class NotificationBot extends TelegramLongPollingBot {
         sendAnswerCallback(answerCallbackQuery);
     }
 
+    public void sendNotification(long tgId, String productName, double lastPrice, double newPrice) {
+        SendMessage message = getNotificationMessage(tgId, productName, lastPrice, newPrice);
+        sendMessage(message);
+    }
+
     private void sendMessage(SendMessage message, State state) {
         try {
             Message mes = execute(message);
             state.lastMessageId = mes.getMessageId();
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendMessage(SendMessage message) {
+        try {
+            Message mes = execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
