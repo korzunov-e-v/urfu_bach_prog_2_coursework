@@ -29,6 +29,9 @@ public class User {
     @OneToMany(mappedBy="owner", fetch=FetchType.LAZY)
     private List<Product> products;
 
+    @Column(name="enable_notifications", nullable = false)
+    private boolean enableNotifications;
+
     @Column(name="created_at", nullable=false)
     private Instant createdAt;
 
@@ -47,6 +50,10 @@ public class User {
 
     public long getTgId() {
         return tgId;
+    }
+
+    public boolean isEnableNotifications() {
+        return enableNotifications;
     }
 
     public List<Group> getAllGroups() {
@@ -71,9 +78,14 @@ public class User {
         return createdAt;
     }
 
+    public void setEnableNotifications(boolean enableNotifications) {
+        this.enableNotifications = enableNotifications;
+    }
+
     public User(String username, long tgId) {
         this.username = username;
         this.tgId = tgId;
+        this.enableNotifications = true;
     }
 
     public User() {

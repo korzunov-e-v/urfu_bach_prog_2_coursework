@@ -3,7 +3,8 @@ package bot;
 import database.HibernateUtil;
 import database.models.Group;
 import database.models.Product;
-import org.hibernate.Hibernate;
+import database.models.User;
+import mongo.MongoUtil;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -11,7 +12,6 @@ import org.hibernate.resource.transaction.spi.TransactionStatus;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -64,10 +64,13 @@ public class NotificationBot extends TelegramLongPollingBot {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            session = sessionFactory.getCurrentSession();
             Transaction lastTransaction = session.getTransaction();
             if (lastTransaction.getStatus() == TransactionStatus.ACTIVE) {
                 lastTransaction.rollback();
             }
+            session.close();
         }
     }
 
@@ -141,8 +144,8 @@ public class NotificationBot extends TelegramLongPollingBot {
             }
             case RETRIEVE_PRODUCT -> processRetrieveProduct(state);
             case RESET_PRODUCTS -> processResetProductsMenu(state);
-//            case RESET_PRODUCT -> processResetProduct(state);
-//            case "toggle_notifications" -> // todo
+            case RESET_PRODUCT -> processResetProduct(state, Long.parseLong(callbackArg));
+            case TOGGLE_NOTIFICATIONS -> processToggleNotifications(state);
         }
         AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery();
         answerCallbackQuery.setCallbackQueryId(update.getCallbackQuery().getId());
@@ -194,7 +197,14 @@ public class NotificationBot extends TelegramLongPollingBot {
 
     private void processSettingsMenu(State state) {
         state.currentMenu = Menu.SETTINGS;
-        SendMessage message = getMessageSettings(state);
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        User user = getUser(state.userTgId);
+        boolean notif = user.isEnableNotifications();
+        transaction.commit();
+
+        SendMessage message = getMessageSettings(state, notif);
         sendMessage(message, state);
     }
 
@@ -216,15 +226,10 @@ public class NotificationBot extends TelegramLongPollingBot {
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
         List<Group> groups = getGroups(state.userTgId);
-        transaction.commit();
 
-        SendMessage message;
-        if (transaction.getStatus() == COMMITTED) {
-            message = getMessageAllGroups(state, groups);
-        } else {
-            message = getMessageError(state);
-        }
+        SendMessage message = getMessageAllGroups(state, groups);
         sendMessage(message, state);
+        transaction.commit();
     }
 
     private void processAddGroupsMenu(State state) {
@@ -386,10 +391,43 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
     private void processResetProductsMenu(State state) {
-        state.currentMenu = Menu.RETRIEVE_GROUP;
-        SendMessage message = getMessageResetProduct(state);
+        state.currentMenu = Menu.RESET_PRODUCTS;
+
+        Session session = sessionFactory.getCurrentSession();
+
+        Transaction transaction = session.beginTransaction();
+        Group group = session.get(Group.class, state.groupId);
+        List<Product> products = group.getProducts().stream().toList();
+        transaction.commit();
+
+        SendMessage message = getMessageResetProducts(state, products);
         sendMessage(message, state);
     }
+
+    private void processResetProduct(State state, long productId) {
+        state.currentMenu = Menu.RESET_PRODUCTS;
+
+        MongoUtil.resetProduct(productId);
+
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        Product product = session.get(Product.class, productId);
+        transaction.commit();
+
+        SendMessage message = getMessageResetProductsSuccess(state, product.getName());
+        sendMessage(message, state);
+        sendMessageCurrentState(state);
+    }
+
+    private void processToggleNotifications(State state) {
+        Session session = sessionFactory.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+        changeSettingNotification(state.userTgId);
+        transaction.commit();
+
+        sendMessageCurrentState(state);
+    }
+
 
     private void sendMessageAddProductSuccess(State state, ProductCreationStatus status) {
         SendMessage message = getMessageAddProductSuccess(state, status);
@@ -495,6 +533,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         RESET_PRODUCTS,
         RESET_PRODUCT,
         SETTINGS,
+        TOGGLE_NOTIFICATIONS,
         HELP
     }
 }

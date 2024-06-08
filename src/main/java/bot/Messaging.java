@@ -4,9 +4,7 @@ import database.HibernateUtil;
 import database.models.Group;
 import database.models.Product;
 import mongo.MongoUtil;
-import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
@@ -39,8 +37,8 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageSettings(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getSettingsKeyboard(state);
+    static SendMessage getMessageSettings(State state, boolean notif) {
+        InlineKeyboardMarkup kbm = Keyboards.getSettingsKeyboard(state, notif);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
         message.setText("Настройки.");
@@ -76,18 +74,26 @@ public class Messaging {
         for (Group group : groups) {
             List<Product> products = group.getProducts();
 
-            double minPrice = 0;
-            double maxPrice = 0;
+            Double minPrice = null;
+            Double maxPrice = null;
             Double curr = 0.0;
             for (Product product : products) {
                 curr = MongoUtil.getCurrentPrice(product.getId());
                 if (curr != null) {
+                    if (minPrice == null) {
+                        minPrice = curr;
+                        maxPrice = curr;
+                    }
                     minPrice = Math.min(minPrice, curr);
                     maxPrice = Math.max(maxPrice, curr);
                 }
             }
 
-            sb.append(String.format("- %s - от %d до %d руб.\n", group.getName(), (int) minPrice, (int) maxPrice));
+            if (minPrice == null) {
+                minPrice = (double) 0;
+                maxPrice = (double) 0;
+            }
+            sb.append(String.format("- %s - от %d до %d руб.\n", group.getName(), minPrice.intValue(), maxPrice.intValue()));
 //            sb.append(String.format("  +%d руб за месяц\n", 0));  // todo
 //            sb.append(String.format("  +%d руб с момента добавления\n", 0));  // todo
             sb.append("\n");
@@ -163,13 +169,25 @@ public class Messaging {
             sb.append("Пока что тут нет товаров.");
         } else {
             for (Product product : products) {
-                long productId = product.getId();
-                Double currentPrice = MongoUtil.getCurrentPrice(productId);
-                int minPrice = (int) MongoUtil.getMinPrice(productId);
-                int maxPrice = (int) MongoUtil.getMaxPrice(productId);
+                Double currentPrice = null;
+                Double minPrice = null;
+                Double maxPrice = null;
 
+                long productId = product.getId();
+                currentPrice = MongoUtil.getCurrentPrice(productId);
+                if (currentPrice == null) {
+                    currentPrice = (double) 0;
+                    minPrice = (double) 0;
+                    maxPrice = (double) 0;
+                } else {
+                    minPrice = MongoUtil.getMinPrice(productId);
+                    maxPrice = MongoUtil.getMaxPrice(productId);
+                }
+
+                assert minPrice != null;
+                assert maxPrice != null;
                 sb.append(String.format(
-                        "- %s - %.2f руб (изм от %d до %d руб).\n", product.getName(), currentPrice, minPrice, maxPrice));
+                        "- %s - %.2f руб (изм от %d до %d руб).\n", product.getName(), currentPrice, minPrice.intValue(), maxPrice.intValue()));
                 sb.append("\n");
             }
         }
@@ -201,7 +219,7 @@ public class Messaging {
         message.setChatId(state.userTgId);
         switch (status) {
             case SUCCESS ->
-                    message.setText("Продукт успешно добавлен."); // todo: write prod message
+                    message.setText("Продукт успешно добавлен.");
             case UNEXPECTED_MARKET -> message.setText(
                     "Такой магазин пока что не поддерживается.");
             case UNEXPECTED_URL -> message.setText("Данная ссылка ведёт не на страницу товара.");
@@ -243,14 +261,23 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageResetProduct(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getResetProductsKeyboard(state);
+    static SendMessage getMessageResetProducts(State state, List<Product> products) {
+        InlineKeyboardMarkup kbm = Keyboards.getResetProductsKeyboard(state, products);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Меню сброса статистики о товаре.");
+        message.setText("Меню сброса статистики о товаре. После нажатия на кнопку с товаром, вся статистика изменения цены данного товара будет удалена.");
         message.setReplyMarkup(kbm);
         return message;
     }
+
+    static SendMessage getMessageResetProductsSuccess(State state, String productName) {
+        SendMessage message = new SendMessage();
+        message.setChatId(state.userTgId);
+        message.setText(String.format("Сброшена статистика товара %s.",productName));
+        return message;
+    }
+
+
 
     static SendMessage getMessageAllProducts(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getAllProductsKeyboard(state);

@@ -194,4 +194,13 @@ class Queries {
             return DeletionStatus.NOT_FOUND;
         }
     }
+
+    static void changeSettingNotification(long tgId) {
+        Session session = sessionFactory.getCurrentSession();
+
+        User user = getUser(tgId);
+        assert user != null;
+        user.setEnableNotifications(!user.isEnableNotifications());
+        session.persist(user);
+    }
 }

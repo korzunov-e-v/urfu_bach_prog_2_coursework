@@ -222,10 +222,27 @@ class Keyboards {
         return markupInline;
     }
 
-    static InlineKeyboardMarkup getResetProductsKeyboard(State state) {
+    static InlineKeyboardMarkup getResetProductsKeyboard(State state, List<Product> products) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        // TODO
+
+        // TODO: pagination
+        for (Product product : products) {
+            List<InlineKeyboardButton> rowInlineProduct = new ArrayList<>();
+            InlineKeyboardButton buttonProduct = new InlineKeyboardButton();
+            buttonProduct.setText(product.getName());
+            buttonProduct.setCallbackData(Menu.RESET_PRODUCT.toString() + "+" + product.getId());
+            rowInlineProduct.add(buttonProduct);
+            rowsInline.add(rowInlineProduct);
+        }
+
+        List<InlineKeyboardButton> rowInlineCancel = new ArrayList<>();
+        InlineKeyboardButton buttonCancel = new InlineKeyboardButton();
+        buttonCancel.setText("Завершить");
+        buttonCancel.setCallbackData(Menu.RETRIEVE_GROUP.toString() + "+" + state.groupId);
+        rowInlineCancel.add(buttonCancel);
+        rowsInline.add(rowInlineCancel);
+
         markupInline.setKeyboard(rowsInline);
         return markupInline;
     }
@@ -259,10 +276,20 @@ class Keyboards {
         return markupInline;
     }
 
-    static InlineKeyboardMarkup getSettingsKeyboard(State state) {
+    static InlineKeyboardMarkup getSettingsKeyboard(State state, boolean notif) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        // TODO
+
+        List<InlineKeyboardButton> rowInlineNotifications = new ArrayList<>();
+        InlineKeyboardButton buttonNotifications = new InlineKeyboardButton();
+        if (notif) {
+            buttonNotifications.setText("Выключить уведомления");
+        } else {
+            buttonNotifications.setText("Включить уведомления");
+        }
+        buttonNotifications.setCallbackData(Menu.TOGGLE_NOTIFICATIONS.toString());
+        rowInlineNotifications.add(buttonNotifications);
+        rowsInline.add(rowInlineNotifications);
 
         List<InlineKeyboardButton> rowInlineCancel = new ArrayList<>();
         InlineKeyboardButton buttonCancel = new InlineKeyboardButton();

@@ -1,8 +1,7 @@
 package mongo;
 
-import com.mongodb.BasicDBObject;
+import com.mongodb.MongoException;
 import com.mongodb.client.ListCollectionNamesIterable;
-import com.mongodb.client.ListCollectionsIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -12,10 +11,11 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ValidationOptions;
 import com.mongodb.client.result.InsertOneResult;
 import java.util.Date;
-import java.util.Objects;
 import org.bson.BsonType;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+
+import static com.mongodb.client.model.Filters.eq;
 
 public class MongoUtil {
 
@@ -71,30 +71,52 @@ public class MongoUtil {
     public static Double getCurrentPrice(long productId) {
         MongoCollection<Document> collection = getCollection();
 
-        Document a = collection.find(Filters.eq("product_id", productId))
+        Document doc = collection.find(Filters.eq("product_id", productId))
                 .sort(new Document("creation_at", -1)).first();
 
-        if (a != null){
-            return a.getDouble("price");
+        if (doc != null){
+            return doc.getDouble("price");
         } else {
             return null;
         }
     }
 
-    public static double getMinPrice(long productId) {
+    public static Double getMinPrice(long productId) {
         MongoCollection<Document> collection = getCollection();
 
-        return Objects.requireNonNull(collection.find(Filters.eq("product_id", productId))
-                .sort(new Document("price", 1))
-                .first()).getDouble("price");
+        Document doc = collection.find(Filters.eq("product_id", productId))
+                .sort(new Document("price", 1)).first();
+
+        if (doc != null){
+            return doc.getDouble("price");
+        } else {
+            return null;
+        }
     }
 
-    public static double getMaxPrice(long productId) {
+    public static Double getMaxPrice(long productId) {
         MongoCollection<Document> collection = getCollection();
 
-        return Objects.requireNonNull(collection.find(Filters.eq("product_id", productId))
-                .sort(new Document("price", -1))
-                .first()).getDouble("price");
+        Document doc = collection.find(Filters.eq("product_id", productId))
+                .sort(new Document("price", -1)).first();
+
+        if (doc != null){
+            return doc.getDouble("price");
+        } else {
+            return null;
+        }
+    }
+
+    public static void resetProduct(long productId) {
+        MongoCollection<Document> collection = getCollection();
+
+        Bson query = eq("product_id", productId);
+
+        try {
+            collection.deleteMany(query);
+        } catch (MongoException e) {
+            e.printStackTrace();
+        }
     }
 
 }

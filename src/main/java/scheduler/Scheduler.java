@@ -48,7 +48,7 @@ public class Scheduler {
                         Marketplace marketplace = Marketplace.getInstance(product.getProductUrl());
                         double price = marketplace.getPrice();
                         Double lastPrice = MongoUtil.getCurrentPrice(product.getId());
-                        if (lastPrice != null && price != lastPrice) {
+                        if (lastPrice != null && price != lastPrice && product.getOwner().isEnableNotifications()) {
                             NotificationBot nb = new NotificationBot(System.getenv("BOT_TOKEN"));
                             nb.sendNotification(product.getOwner().getTgId(), product.getName(), lastPrice, price);
                         }

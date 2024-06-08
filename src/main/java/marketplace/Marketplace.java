@@ -53,7 +53,6 @@ public abstract class Marketplace {
             Connection connection = Jsoup.connect(productUrl);
             connection.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 YaBrowser/24.1.0.0 Safari/537.36");
             connection.header("Accept-Language", "en-US,en;q=0.5");
-//            connection.header("Accept-Encoding", "gzip, deflate, br");
             return connection.get();
         } catch (IOException e) {
             throw new MarketplaceException();
@@ -68,9 +67,9 @@ public abstract class Marketplace {
         try {
             URL url = new URL(productUrl);
             switch (url.getHost()) {
-                case "avito.ru" -> {
-                    return new AvitoMarketplace(productUrl);
-                }
+//                case "avito.ru" -> {
+//                    return new AvitoMarketplace(productUrl);
+//                }
                 case "market.yandex.ru" -> {
                     return new YandexMarketMarketplace(productUrl);
                 }
