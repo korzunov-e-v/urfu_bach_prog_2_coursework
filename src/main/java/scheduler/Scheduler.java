@@ -75,7 +75,7 @@ public class Scheduler {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Product> criteriaQuery = builder.createQuery(Product.class);
         Root<Product> root = criteriaQuery.from(Product.class);
-        criteriaQuery.select(root);
+        criteriaQuery.select(root).where(builder.equal(root.get("isDeleted"), false));
         TypedQuery<Product> query = session.createQuery(criteriaQuery);
         List<Product> result = query.getResultList().stream().toList();
         return result;
