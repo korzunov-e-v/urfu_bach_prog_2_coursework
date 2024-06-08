@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Predicate;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.SQLDelete;
 
 
@@ -28,7 +26,6 @@ public class Group {
     private User owner;
 
     @OneToMany(mappedBy="groupId", fetch=FetchType.LAZY, cascade=CascadeType.REMOVE)
-//    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Product> products;
 
     @Column(name="created_at", nullable=false)

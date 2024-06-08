@@ -1,8 +1,12 @@
 package bot;
 
+import database.HibernateUtil;
 import database.models.Group;
 import database.models.Product;
 import mongo.MongoUtil;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
@@ -15,11 +19,13 @@ import static bot.NotificationBot.State;
 
 public class Messaging {
 
+    private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
+
     static SendMessage getMessageStart(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Привет. Это стартовое сообщение"); // todo: write prod message
+        message.setText("Привет. Это главное меню. Чтобы добавить товар в отслеживаемые, создай группу товаров и добавь туда интересующие товары.");
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -28,7 +34,7 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Это главное меню"); // todo: write prod message
+        message.setText("Главное меню.");
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -37,7 +43,7 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getSettingsKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Это настройки"); // todo: write prod message
+        message.setText("Настройки.");
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -46,7 +52,7 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getCancelKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Привет. Это справка."); // todo: write prod message
+        message.setText("Справка.\n\nЧтобы добавить товар, можно создать группу и после добавить туда товары. Бот будет следить за ценой и уведомлять об изменении.");
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -60,20 +66,34 @@ public class Messaging {
         return message;
     }
 
+    // todo
     static SendMessage getMessageAllGroups(State state, List<Group> groups) {
         InlineKeyboardMarkup kbm = Keyboards.getAllGroupsKeyboard(state, groups);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
 
-        StringBuilder sb = new StringBuilder("Привет. Это группы. \n\n");
+        StringBuilder sb = new StringBuilder("Список групп. \n\n");
         for (Group group : groups) {
-            sb.append(String.format("- %s - от %d до %d руб.\n", group.getName(), 0, 0)); // todo
-            sb.append(String.format("  +%d руб за месяц\n", 0));  // todo
-            sb.append(String.format("  +%d руб с момента добавления\n", 0));  // todo
+            List<Product> products = group.getProducts();
+
+            double minPrice = 0;
+            double maxPrice = 0;
+            Double curr = 0.0;
+            for (Product product : products) {
+                curr = MongoUtil.getCurrentPrice(product.getId());
+                if (curr != null) {
+                    minPrice = Math.min(minPrice, curr);
+                    maxPrice = Math.max(maxPrice, curr);
+                }
+            }
+
+            sb.append(String.format("- %s - от %d до %d руб.\n", group.getName(), (int) minPrice, (int) maxPrice));
+//            sb.append(String.format("  +%d руб за месяц\n", 0));  // todo
+//            sb.append(String.format("  +%d руб с момента добавления\n", 0));  // todo
             sb.append("\n");
         }
 
-        message.setText(sb.toString()); // todo: write prod message
+        message.setText(sb.toString());
         message.enableMarkdown(true);
         message.setReplyMarkup(kbm);
         return message;
@@ -84,13 +104,14 @@ public class Messaging {
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
 
-        StringBuilder sb = new StringBuilder("Привет. Это меню добавления группы. \n\n");
+        StringBuilder sb = new StringBuilder("Меню добавления группы. Чтобы создать группу, можно отпрвить имя новой группы в следующем сообщении.\n\n");
         for (Group group : groups) {
-            sb.append(group.toString());
-            sb.append("\n\n");
+            sb.append("- ");
+            sb.append(group.getName());
+            sb.append("\n");
         }
 
-        message.setText(sb.toString()); // todo: write prod message
+        message.setText(sb.toString());
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -101,7 +122,7 @@ public class Messaging {
         message.setChatId(state.userTgId);
         switch (status) {
             case SUCCESS ->
-                    message.setText("Группа успешно добавлена."); // todo: write prod message
+                    message.setText("Группа успешно добавлена.");
             case ALREADY_EXISTS ->
                     message.setText("Группа не добавлена, группа с таким именем уже существует.");
         }
@@ -113,7 +134,7 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getDeleteGroupsKeyboard(state, groups);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Привет. Это меню удаления группы."); // todo: write prod message
+        message.setText("Меню удаления группы. После нажатия на название группы, она будет удалена, вместе с содержащимися товарами.");
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -137,7 +158,7 @@ public class Messaging {
 
 
         StringBuilder sb = new StringBuilder(
-                String.format("Привет. Это меню информации о группе '%s' \n\n", group.getName()));
+                String.format("Меню информации о группе '%s' \n\n", group.getName()));
         if (products.size() == 0) {
             sb.append("Пока что тут нет товаров.");
         } else {
@@ -153,7 +174,7 @@ public class Messaging {
             }
         }
 
-        message.setText(sb.toString()); // todo: write prod message
+        message.setText(sb.toString());
         message.enableMarkdown(true);
         message.setReplyMarkup(kbm);
         return message;
@@ -163,7 +184,13 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getCancelCreateProductKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Привет. Это меню добавления товара."); // todo: write prod message
+        message.setText(
+                """
+                Меню добавления товара. Чтобы добавить товар, можно отправить ссылку на него.
+
+                В данный момент поддерживается только YandexMarket.
+                """
+        ); // todo: write prod message
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -176,8 +203,7 @@ public class Messaging {
             case SUCCESS ->
                     message.setText("Продукт успешно добавлен."); // todo: write prod message
             case UNEXPECTED_MARKET -> message.setText(
-                    "Такой магазин не поддерживается. Администратор добавит возможность отслеживать"
-                            + " цены в данном магазине в близжайшее время.");
+                    "Такой магазин пока что не поддерживается.");
             case UNEXPECTED_URL -> message.setText("Данная ссылка ведёт не на страницу товара.");
             case NO_PRODUCT -> message.setText(
                     "Данная страница не содержит товара. Возможно такого товара нет.");
@@ -192,7 +218,7 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getDeleteProductsKeyboard(state, products);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Привет. Это меню удаления товара."); // todo: write prod message
+        message.setText("Меню удаления товара. Чтобы удалить товар, можно нажать кнопку с его названием. Он сразу удалится.");
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -212,7 +238,7 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getRetrieveProductsKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Привет. Это меню информации о товаре."); // todo: write prod message
+        message.setText("Меню информации о товаре.");
         message.setReplyMarkup(kbm);
         return message;
     }
@@ -221,7 +247,7 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getResetProductsKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
-        message.setText("Привет. Это меню сброса статистики о товаре."); // todo: write prod message
+        message.setText("Меню сброса статистики о товаре.");
         message.setReplyMarkup(kbm);
         return message;
     }

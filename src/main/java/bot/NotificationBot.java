@@ -3,9 +3,11 @@ package bot;
 import database.HibernateUtil;
 import database.models.Group;
 import database.models.Product;
+import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
+import org.hibernate.resource.transaction.spi.TransactionStatus;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -52,12 +54,20 @@ public class NotificationBot extends TelegramLongPollingBot {
         State state = stateMap.getOrDefault(userTgId, new State(userTgId, Menu.MAIN));
         stateMap.put(userTgId, state);
 
-        if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
-            onCommand(update, state);
-        } else if (update.hasMessage() && update.getMessage().hasText()) {
-            onText(update, state);
-        } else if (update.hasCallbackQuery()) {
-            onCallback(update, state);
+        try {
+            if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
+                onCommand(update, state);
+            } else if (update.hasMessage() && update.getMessage().hasText()) {
+                onText(update, state);
+            } else if (update.hasCallbackQuery()) {
+                onCallback(update, state);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Transaction lastTransaction = session.getTransaction();
+            if (lastTransaction.getStatus() == TransactionStatus.ACTIVE) {
+                lastTransaction.rollback();
+            }
         }
     }
 

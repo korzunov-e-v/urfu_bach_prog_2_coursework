@@ -98,7 +98,7 @@ class Queries {
 
         Predicate ownerPredicate = builder.equal(root.get("owner"), getUser(tgId));
         Predicate namePredicate = builder.equal(root.get("name"), name);
-        Predicate deletedPredicate = builder.equal(root.get("is_deleted"), false);
+        Predicate deletedPredicate = builder.equal(root.get("isDeleted"), false);
         Predicate predicate = builder.and(ownerPredicate, namePredicate, deletedPredicate);
         criteriaQuery.select(root).where(predicate);
 
