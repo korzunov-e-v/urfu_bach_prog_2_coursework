@@ -64,7 +64,6 @@ public class Messaging {
         return message;
     }
 
-    // todo
     static SendMessage getMessageAllGroups(State state, List<Group> groups) {
         InlineKeyboardMarkup kbm = Keyboards.getAllGroupsKeyboard(state, groups);
         SendMessage message = new SendMessage();
@@ -256,6 +255,9 @@ public class Messaging {
         InlineKeyboardMarkup kbm = Keyboards.getRetrieveProductsKeyboard(state);
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
+
+        // todo
+
         message.setText("Меню информации о товаре.");
         message.setReplyMarkup(kbm);
         return message;
@@ -277,8 +279,6 @@ public class Messaging {
         return message;
     }
 
-
-
     static SendMessage getMessageAllProducts(State state) {
         InlineKeyboardMarkup kbm = Keyboards.getAllProductsKeyboard(state);
         SendMessage message = new SendMessage();
@@ -288,21 +288,12 @@ public class Messaging {
         return message;
     }
 
-    static SendMessage getMessageAddProductUnexpected(State state) {
-        InlineKeyboardMarkup kbm = Keyboards.getAddProductsKeyboard(state);
-        SendMessage message = new SendMessage();
-        message.setChatId(state.userTgId);
-        message.setText("Такого сообщения не ожидалось.");
-        message.setReplyMarkup(kbm);
-        return message;
-    }
-
     static SendMessage getMessageError(State state) {
-//        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
+        InlineKeyboardMarkup kbm = Keyboards.getMainKeyboard();
         SendMessage message = new SendMessage();
         message.setChatId(state.userTgId);
         message.setText("Произошла ошибка");
-//        message.setReplyMarkup(kbm);
+        message.setReplyMarkup(kbm);
         return message;
     }
 

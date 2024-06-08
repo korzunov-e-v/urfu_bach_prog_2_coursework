@@ -96,20 +96,14 @@ public class NotificationBot extends TelegramLongPollingBot {
     }
 
 
-    // TODO
     private void onCallback(Update update, State state) {
         long userTgId = update.getCallbackQuery().getFrom().getId();
 
-        // TODO: for debug
-        SendMessage message = new SendMessage();
-        message.setChatId(userTgId);
-        message.setText(
-                "Ответ на callback#" + update.getCallbackQuery().getId() + ", data:"
-                        + update.getCallbackQuery().getData());
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
+        if (Constants.DEBUG && userTgId == Constants.ADMIN_ID) {
+            SendMessage message = new SendMessage();
+            message.setChatId(userTgId);
+            message.setText("Ответ на callback#" + update.getCallbackQuery().getId() + ", data:" + update.getCallbackQuery().getData());
+            sendMessage(message);
         }
 
         String[] callbackData = update.getCallbackQuery().getData().split("\\+");
@@ -144,7 +138,10 @@ public class NotificationBot extends TelegramLongPollingBot {
             }
             case RETRIEVE_PRODUCT -> processRetrieveProduct(state);
             case RESET_PRODUCTS -> processResetProductsMenu(state);
-            case RESET_PRODUCT -> processResetProduct(state, Long.parseLong(callbackArg));
+            case RESET_PRODUCT -> {
+                assert callbackArg != null;
+                processResetProduct(state, Long.parseLong(callbackArg));
+            }
             case TOGGLE_NOTIFICATIONS -> processToggleNotifications(state);
         }
         AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery();
@@ -201,6 +198,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         Session session = sessionFactory.getCurrentSession();
         Transaction transaction = session.beginTransaction();
         User user = getUser(state.userTgId);
+        assert user != null;
         boolean notif = user.isEnableNotifications();
         transaction.commit();
 
@@ -356,9 +354,6 @@ public class NotificationBot extends TelegramLongPollingBot {
         List<Product> products = group.getProducts().stream().toList();
         transaction2.commit();
 
-        // todo: edit message
-//        EditMessageText.builder().messageId(state.lastMessageId).text()
-
         SendMessage message;
         if (transaction1.getStatus() == COMMITTED) {
             message = getMessageDeleteProductSuccess(state, status);
@@ -428,18 +423,6 @@ public class NotificationBot extends TelegramLongPollingBot {
         sendMessageCurrentState(state);
     }
 
-
-    private void sendMessageAddProductSuccess(State state, ProductCreationStatus status) {
-        SendMessage message = getMessageAddProductSuccess(state, status);
-        sendMessage(message, state);
-    }
-
-    private void sendMessageAddProductUnexpected(State state) {
-        state.currentMenu = Menu.RETRIEVE_GROUP;
-        SendMessage message = getMessageAddProductUnexpected(state);
-        sendMessage(message, state);
-    }
-
     private void sendMessageCurrentState(State state) {
         switch (state.currentMenu) {
             case MAIN -> processMainMenu(state);
@@ -456,7 +439,7 @@ public class NotificationBot extends TelegramLongPollingBot {
         }
     }
 
-//    // TODO
+//    // todo
 //    private void sendReport(String productUrl, ProductCreationStatus status, long userTgId) {
 //        SendMessage message = new SendMessage();
 //        message.setChatId(Constants.ADMIN_ID);

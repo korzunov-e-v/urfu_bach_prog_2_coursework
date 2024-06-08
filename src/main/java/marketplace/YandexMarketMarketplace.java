@@ -1,7 +1,13 @@
 package marketplace;
 
+import bot.Constants;
 import database.models.Product.MarketplaceEnum;
+import java.io.IOException;
 import marketplace.exceptions.MarketplaceException;
+import marketplace.exceptions.NoProductException;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.util.regex.Matcher;
@@ -17,10 +23,27 @@ public class YandexMarketMarketplace extends Marketplace {
     }
 
     @Override
+    protected Document loadDoc() throws MarketplaceException {
+        try {
+            Connection connection = Jsoup.connect(productUrl);
+            connection.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 YaBrowser/24.1.0.0 Safari/537.36");
+            connection.header("Accept-Language", "en-US,en;q=0.5");
+            connection.header("cookie", Constants.YA_COOKIES);
+            return connection.get();
+        } catch (IOException e) {
+            throw new MarketplaceException();
+        }
+    }
+
+    @Override
     public double getPrice() throws MarketplaceException {
         double price;
         Element priceDiv = getDoc().getElementsByAttributeValue("data-auto", "snippet-price-current").first();
-        // todo check and throw
+
+        if (priceDiv == null) {
+            throw new NoProductException();
+        }
+
         String priceText = priceDiv.text().replaceAll(" ", "");
         Matcher priceMatcher = patternPrice.matcher(priceText);
         priceMatcher.find();

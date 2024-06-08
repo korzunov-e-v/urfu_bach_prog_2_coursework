@@ -13,11 +13,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public abstract class Marketplace {
-    private final String name;
-    private final String baseUrl;
-    private final MarketplaceEnum marketplaceType;
-    private final String productUrl;
-    private final Document doc;
+    protected final String name;
+    protected final String baseUrl;
+    protected final MarketplaceEnum marketplaceType;
+    protected final String productUrl;
+    protected final Document doc;
 
     protected Marketplace(String name, String baseUrl, MarketplaceEnum marketplaceType, String productUrl) throws MarketplaceException {
         this.name = name;
@@ -47,7 +47,7 @@ public abstract class Marketplace {
         return doc;
     }
 
-    private Document loadDoc() throws MarketplaceException {
+    protected Document loadDoc() throws MarketplaceException {
         try {
             // todo http 423
             Connection connection = Jsoup.connect(productUrl);

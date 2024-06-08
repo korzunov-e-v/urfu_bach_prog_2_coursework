@@ -11,19 +11,20 @@ import java.util.List;
 import static bot.NotificationBot.State;
 import static bot.NotificationBot.Menu;
 
-// TODO
+
 class Keyboards {
 
     static InlineKeyboardMarkup getMainKeyboard() {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
-        List<InlineKeyboardButton> rowInline1 = new ArrayList<>();
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("Все товары");
-        button1.setCallbackData(Menu.ALL_PRODUCTS.toString());
-        rowInline1.add(button1);
-        rowsInline.add(rowInline1);
+        // todo
+//        List<InlineKeyboardButton> rowInline1 = new ArrayList<>();
+//        InlineKeyboardButton button1 = new InlineKeyboardButton();
+//        button1.setText("Все товары");
+//        button1.setCallbackData(Menu.ALL_PRODUCTS.toString());
+//        rowInline1.add(button1);
+//        rowsInline.add(rowInline1);
 
         List<InlineKeyboardButton> rowInline2 = new ArrayList<>();
         InlineKeyboardButton button2 = new InlineKeyboardButton();
@@ -116,7 +117,7 @@ class Keyboards {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
-        // TODO: pagination
+        // todo: pagination
         for (Group group : groups) {
             List<InlineKeyboardButton> rowInlineGroup = new ArrayList<>();
             InlineKeyboardButton buttonGroup = new InlineKeyboardButton();
@@ -181,19 +182,11 @@ class Keyboards {
         return markupInline;
     }
 
-    static InlineKeyboardMarkup getAddProductsKeyboard(State state) {
-        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        // TODO
-        markupInline.setKeyboard(rowsInline);
-        return markupInline;
-    }
-
     static InlineKeyboardMarkup getDeleteProductsKeyboard(State state, List<Product> products) {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
-        // TODO: pagination
+        // todo: pagination
         for (Product product : products) {
             List<InlineKeyboardButton> rowInlineProduct = new ArrayList<>();
             InlineKeyboardButton buttonProduct = new InlineKeyboardButton();
@@ -226,7 +219,7 @@ class Keyboards {
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
-        // TODO: pagination
+        // todo: pagination
         for (Product product : products) {
             List<InlineKeyboardButton> rowInlineProduct = new ArrayList<>();
             InlineKeyboardButton buttonProduct = new InlineKeyboardButton();
