@@ -4,12 +4,14 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 
 @SuppressWarnings("unused")
 @Entity
 @Table(name="Products")
+@SQLDelete(sql = "UPDATE Products SET is_deleted = true, deleted_at = now() WHERE id = ?")
 public class Product {
     @Id
     @GeneratedValue
@@ -38,6 +40,12 @@ public class Product {
     @Column(name="created_at")
     private Instant createdAt;
 
+    @Column(name="is_deleted")
+    private boolean isDeleted;
+
+    @Column(name="deleted_at")
+    private Instant deletedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
@@ -49,6 +57,7 @@ public class Product {
         this.groupId = groupId;
         this.owner = owner;
         this.productUrl = productUrl;
+        this.isDeleted = false;
     }
 
     public Product() {
@@ -80,6 +89,14 @@ public class Product {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
     }
 
     @Override

@@ -53,8 +53,7 @@ class Queries {
         if (user == null) {
             user = new User(username, tgId);
             session.persist(user);
-        } else {
-            System.out.println("User found: " + user);
+            System.out.println("New user: " + user.toString());
         }
 
         return user;
@@ -99,7 +98,8 @@ class Queries {
 
         Predicate ownerPredicate = builder.equal(root.get("owner"), getUser(tgId));
         Predicate namePredicate = builder.equal(root.get("name"), name);
-        Predicate predicate = builder.and(ownerPredicate, namePredicate);
+        Predicate deletedPredicate = builder.equal(root.get("is_deleted"), false);
+        Predicate predicate = builder.and(ownerPredicate, namePredicate, deletedPredicate);
         criteriaQuery.select(root).where(predicate);
 
         TypedQuery<Group> query = session.createQuery(criteriaQuery);

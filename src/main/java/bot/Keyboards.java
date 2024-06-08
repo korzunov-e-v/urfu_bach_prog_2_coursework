@@ -103,7 +103,7 @@ class Keyboards {
 
         List<InlineKeyboardButton> rowInlineCancel = new ArrayList<>();
         InlineKeyboardButton buttonCancel = new InlineKeyboardButton();
-        buttonCancel.setText("Завершить");
+        buttonCancel.setText("Завершить создание групп");
         buttonCancel.setCallbackData(Menu.ALL_GROUPS.toString());
         rowInlineCancel.add(buttonCancel);
         rowsInline.add(rowInlineCancel);

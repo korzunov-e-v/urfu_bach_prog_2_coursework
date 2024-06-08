@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Predicate;
 
 
 @SuppressWarnings("unused")
@@ -48,12 +49,22 @@ public class User {
         return tgId;
     }
 
-    public List<Group> getGroups() {
+    public List<Group> getAllGroups() {
         return groups;
     }
 
-    public List<Product> getProducts() {
+    public List<Group> getGroups() {
+        Predicate<Group> predicate = group -> !group.isDeleted();
+        return groups.stream().filter(predicate).toList();
+    }
+
+    public List<Product> getAllProducts() {
         return products;
+    }
+
+    public List<Product> getProducts() {
+        Predicate<Product> predicate = product -> !product.isDeleted();
+        return products.stream().filter(predicate).toList();
     }
 
     public Instant getCreatedAt() {
