@@ -11,7 +11,7 @@ services:
       cw2-db:
         condition: service_healthy
   cw2-db:
-    image: postgres
+    image: postgres:15
     restart: always
     user: postgres
     volumes:
