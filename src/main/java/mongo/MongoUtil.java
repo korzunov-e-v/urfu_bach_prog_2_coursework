@@ -20,12 +20,13 @@ import static com.mongodb.client.model.Filters.eq;
 public class MongoUtil {
 
     private static MongoClient mongoClient;
+    private static final String connectionUrl = "mongodb://root:example@cw2-mongo:27017";
     private static final String databaseName = "Prices";
     private static final String collectionName = "PricesSeries";
 
     private static MongoClient getMongoClient() {
         if (mongoClient == null) {
-            mongoClient = MongoClients.create("mongodb://root:example@localhost:27017");
+            mongoClient = MongoClients.create(connectionUrl);
         }
         return mongoClient;
     }
