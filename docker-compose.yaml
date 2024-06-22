@@ -7,6 +7,7 @@ services:
       - ./build:/build/
     env_file:
       - .env
+    restart: always
     depends_on:
       cw2-db:
         condition: service_healthy

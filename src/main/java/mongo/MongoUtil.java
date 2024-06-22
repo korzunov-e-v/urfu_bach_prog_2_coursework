@@ -73,7 +73,7 @@ public class MongoUtil {
         MongoCollection<Document> collection = getCollection();
 
         Document doc = collection.find(Filters.eq("product_id", productId))
-                .sort(new Document("creation_at", -1)).first();
+                .sort(new Document("created_at", -1)).first();
 
         if (doc != null){
             return doc.getDouble("price");
